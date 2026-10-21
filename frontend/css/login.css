@@ -413,3 +413,84 @@ body.staff-registration-page .login-form select { width: 100%; padding: 13px 14p
 body.staff-registration-page .staff-register-hint { color: #777; font-size: 13px; line-height: 1.55; margin: 14px 0 0; }
 body.staff-registration-page .login-form[hidden] { display: none !important; }
 @media (max-width: 700px) { body.login-page:has(#staffForm) .staff-secret-entry { width: 40px; height: 40px; } body.staff-registration-page .login-brand { flex-direction: row; } }
+
+/* Forgot Password: match the login page's barber-chair branding and white back button. */
+body.forgot-password-page {
+  background: #f6f2eb;
+}
+body.forgot-password-page .login-layout {
+  max-width: 1120px;
+  min-height: 580px;
+  grid-template-columns: 45% 55%;
+}
+body.forgot-password-page .login-brand {
+  position: relative;
+  isolation: isolate;
+  background: #15120f url('/images/chaire.png') center center / cover no-repeat;
+  padding: 58px 32px;
+  align-items: center;
+  text-align: center;
+}
+body.forgot-password-page .login-brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0f0c09a8 0%, #0f0c0955 55%, #0f0c0922 100%);
+  z-index: -1;
+}
+body.forgot-password-page .login-brand-overlay { width: 100%; }
+body.forgot-password-page .login-brand-overlay > .brand-icon {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 14px;
+}
+body.forgot-password-page .login-brand .brand-icon img { width: 65px; height: 65px; }
+body.forgot-password-page .login-brand h1 {
+  font: 700 42px/1.05 Georgia, serif;
+  color: white;
+  margin: 0;
+}
+body.forgot-password-page .login-brand h1 span {
+  display: block;
+  margin-top: 13px;
+  color: #d8ad6b;
+  font: 400 18px/1.2 Arial, sans-serif;
+  letter-spacing: 5px;
+}
+body.forgot-password-page .login-brand-rule {
+  height: 2px;
+  width: 52px;
+  margin: 24px auto 17px;
+  background: #d8ad6b;
+}
+body.forgot-password-page .login-brand p {
+  display: block;
+  margin: 0;
+  color: #efe7da;
+  font: 21px/1.5 Georgia, serif;
+}
+body.forgot-password-page .login-content { padding: 34px 42px; }
+body.forgot-password-page .login-content h2 { font-size: 30px; }
+body.forgot-password-page .login-back-link { z-index: 3; }
+@media (max-width: 760px) {
+  body.forgot-password-page .login-layout {
+    grid-template-columns: 1fr;
+    max-width: 540px;
+    min-height: 0;
+  }
+  body.forgot-password-page .login-brand {
+    flex-direction: column;
+    min-height: 160px;
+    padding: 30px 20px 23px;
+  }
+  body.forgot-password-page .login-brand-overlay > .brand-icon { margin-bottom: 8px; }
+  body.forgot-password-page .login-brand .brand-icon img { width: 42px; height: 42px; }
+  body.forgot-password-page .login-brand h1 { font-size: 29px; }
+  body.forgot-password-page .login-brand h1 span { font-size: 11px; margin-top: 7px; letter-spacing: 3px; }
+  body.forgot-password-page .login-brand-rule { margin: 11px auto 8px; }
+  body.forgot-password-page .login-brand p { font-size: 14px; }
+  body.forgot-password-page .login-content { padding: 26px 22px; }
+  body.forgot-password-page .login-back-link { top: 12px; left: 12px; }
+}
