@@ -1,0 +1,34 @@
+BARBERSHOP - FRONTEND AT BACKEND
+
+frontend: HTML pages, CSS, browser JavaScript at images.
+backend: server, API routes, database, middleware at utilities.
+
+Walang hiwalay na frontend command. Ang backend ang nagseserve ng frontend.
+
+UNANG SETUP (CMD sa barber-main folder):
+1. cd backend
+2. npm install
+3. if not exist .env copy .env.example .env
+4. notepad .env
+
+Sa backend/.env:
+- MONGODB_URI: lokal na MongoDB na tumatakbo o Atlas connection string.
+- JWT_SECRET: random secret na hindi bababa sa 32 characters.
+  Gumawa gamit ang:
+  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+- ADMIN_EMAIL at ADMIN_PASSWORD: sarili mong admin login.
+- Optional: CASHIER_EMAIL at CASHIER_PASSWORD.
+I-save ang .env. Siguraduhing hindi .env.txt ang filename.
+
+5. npm run seed
+6. npm start
+7. Kapag may 'Server running', buksan http://localhost:3000
+
+SA SUSUNOD:
+I-double-click ang start-server.cmd sa main folder.
+O sa CMD: cd backend, tapos npm start.
+Panatilihing bukas ang CMD habang ginagamit ang system.
+
+Kailangan pa rin ang MongoDB at tamang .env. Hindi kasama ang credentials.
+Ang node_modules ay ginagawa ng npm install.
+Backup, restore at test commands: patakbuhin mula sa backend folder.

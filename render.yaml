@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: renz-barbershop
+    runtime: node
+    plan: free
+    buildCommand: npm ci --prefix backend
+    startCommand: npm start --prefix backend
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Manila
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DB_NAME
+        value: barbershop
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
