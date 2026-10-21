@@ -128,7 +128,11 @@
     "service.hidden": "Hid a service",
     "inventory.created": "Added a product",
     "inventory.updated": "Changed a product",
-    "inventory.deleted": "Deleted a product"
+    "inventory.deleted": "Deleted a product",
+    "inventory.stock-in": "Added inventory stock",
+    "inventory.stock-out": "Used inventory stock",
+    "inventory.archived": "Archived a product",
+    "inventory.restored": "Restored a product"
   };
 
   function detailsText(details) {
@@ -192,7 +196,7 @@
       customers: ["CUSTOMER OVERVIEW", "Customer Management", "Optional customer accounts and walk-in visits.", "users"],
       barbers: ["TEAM OVERVIEW", "Barber Management", "Add, edit or remove barbers, set who is on duty, and moderate reviews.", "scissors"],
       services: ["SERVICE OVERVIEW", "Service Management", "What customers can choose, with prices and durations.", "services"],
-      inventory: ["INVENTORY OVERVIEW", "Inventory Management", "Products for sale. Items at or below their warning level are flagged.", "inventory"],
+      inventory: ["INVENTORY OVERVIEW", "Inventory Management", "Monitor supplies, products, and stock levels.", "inventory"],
       staff: ["STAFF OVERVIEW", "Staff Management", "Cashier and admin accounts.", "staff"],
       activity: ["SECURITY OVERVIEW", "Activity Log", "Who did what: sign-ins, failed sign-ins, discounts, voids, no-shows and account changes.", "activity"]
     }[kind];
