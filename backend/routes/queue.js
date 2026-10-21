@@ -199,6 +199,7 @@ async function callTicket(res, db, filter, barber, user, notFound) {
       const a=await db.collection('appointments').findOne({_id:ticket.appointmentId});
       if(a){try{const {notify}=require('./appointments');await notify(db,a,'called','Renz Barbershop: It is your turn',`Please proceed to ${barber.name} for your ${a.service} haircut. Queue number #${ticket.queueNumber}.`);}catch(error){console.error('Called customer notification failed:',error.message);}}
     }
+    await audit(res.req, "queue.called", { queueNumber: ticket.queueNumber, customer: ticket.customerName, barber: barber.name });
     res.json(ticketView(ticket));
   } catch (error) {
     // The unique index allows only one customer being served per barber.
@@ -243,6 +244,7 @@ router.post("/", joinLimiter, optionalAuth, async (req, res) => {
 
   if (!isAccount) res.cookie("queueTicket", String(ticket._id), ticketCookie);
 
+  await audit(req, "queue.joined", { queueNumber: ticket.queueNumber, customer: name, service: ticket.service });
   res.status(201).json({ ticket: { ...ticketView(ticket), ...await waitEstimate(db, ticket.queueNumber) } });
 });
 
@@ -275,6 +277,7 @@ router.post("/mine/leave", optionalAuth, async (req, res) => {
   );
 
   if (!ticket) return res.status(409).json({ error: "You are not waiting in the queue." });
+  await audit(req, "queue.left", { queueNumber: ticket.queueNumber, customer: ticket.customerName });
   res.json({ message: "You have left the queue." });
 });
 
@@ -456,6 +459,7 @@ router.post("/walk-in", ...staffOnly, async (req, res) => {
     addedBy: req.user._id
   });
 
+  await audit(req, "queue.walk-in", { queueNumber: ticket.queueNumber, customer: ticket.customerName, service: ticket.service });
   res.status(201).json(ticketView(ticket));
 });
 

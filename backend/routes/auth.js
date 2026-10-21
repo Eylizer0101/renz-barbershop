@@ -287,6 +287,7 @@ router.post("/verify-registration", registerCodeLimiter, async (req, res) => {
   res.clearCookie("pendingRegistration", cookieOptions);
   res.clearCookie("queueTicket", cookieOptions);
   startSession(res, user);
+  await audit({ app: req.app, user, ip: req.ip }, "customer.registered", { account: user.name });
   res.json({ message: "Email verified. Your account is ready.", redirectUrl: HOME_PAGES.customer });
 });
 

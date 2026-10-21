@@ -142,6 +142,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       createdAt: new Date()
     });
 
+    await audit(req, "barber.created", { barber: value.name });
     res.status(201).json({ id: String(result.insertedId), ...value });
   } catch (err) {
     await deleteOwnedPhoto(req.app.locals.db, newPhoto);
@@ -180,7 +181,7 @@ router.patch("/:id", requireAuth, requireRole("admin"), async (req, res) => {
     const result = await collection.updateOne({ _id: id }, { $set: value });
     if (!result.matchedCount) { await deleteOwnedPhoto(req.app.locals.db, newPhoto); return res.status(404).json({ error: "Barber not found." }); }
     if (newPhoto) await deleteOwnedPhoto(req.app.locals.db, old.photoUrl);
-    if (value.active) await audit(req, "barber.restored", { barber: value.name });
+    await audit(req, value.active ? "barber.restored" : "barber.updated", { barber: value.name });
     res.json({ message: "Barber updated." });
   } catch (err) {
     await deleteOwnedPhoto(req.app.locals.db, newPhoto);
@@ -243,6 +244,7 @@ router.patch("/:id/availability", requireAuth, requireRole("admin", "cashier"), 
   );
 
   if (!result.matchedCount) return res.status(404).json({ error: "Barber not found." });
+  await audit(req, "barber.availability", { barberId: String(id), available: req.body.available });
   res.json({ message: "Availability updated." });
 });
 

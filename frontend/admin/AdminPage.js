@@ -173,88 +173,117 @@
 
   // ---------- Activity log ----------
 
-  const ACTION_LABELS = {
-    "login": "Signed in",
-    "login.failed": "Failed sign-in",
-    "login.code-failed": "Wrong email code",
-    "password.changed": "Changed password",
-    "sessions.ended": "Signed out other devices",
-    "payment.discount": "Gave a discount",
-    "payment.voided": "Voided a payment",
-    "queue.no-show": "Marked a no-show",
-    "queue.cancelled": "Cancelled a customer",
-    "queue.cleared": "Cleared the queue",
-    "customer.created": "Created a customer account",
-    "customer.password-reset": "Reset a customer password",
-    "customer.activated": "Activated a customer",
-    "customer.deactivated": "Deactivated a customer",
-    "staff.created": "Added staff",
-    "staff.updated": "Changed staff account",
-    "staff.password-reset": "Reset a staff password",
-    "barber.removed": "Removed a barber",
-    "barber.restored": "Restored a barber",
-    "review.deleted": "Deleted a review",
-    "service.created": "Added a service",
-    "service.updated": "Changed a service",
-    "service.hidden": "Hid a service",
-    "inventory.created": "Added a product",
-    "inventory.updated": "Changed a product",
-    "inventory.deleted": "Deleted a product",
-    "inventory.stock-in": "Added inventory stock",
-    "inventory.stock-out": "Used inventory stock",
-    "inventory.archived": "Archived a product",
-    "inventory.restored": "Restored a product"
-  };
-
   function detailsText(details) {
     return Object.entries(details || {})
-      .filter(([, value]) => value !== null && value !== undefined && value !== "")
-      .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
+      .filter(([key, value]) => value !== null && value !== undefined && value !== "" && !/password|token|secret|otp|codeHash/i.test(key))
+      .map(([key, value]) => `${key.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase())}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
       .join(" · ");
   }
 
+  const ACTION_LABELS = {
+    "login": "Signed in", "logout": "Signed out", "login.failed": "Failed sign-in", "login.code-failed": "Wrong email code",
+    "customer.registered": "Created customer account", "password.changed": "Changed password", "password.reset": "Reset password",
+    "sessions.ended": "Signed out other devices", "payment.discount": "Gave a discount", "payment.collected": "Collected service payment",
+    "payment.product-sale": "Sold a product", "payment.voided": "Voided a payment",
+    "queue.joined": "Joined the queue", "queue.left": "Left the queue", "queue.walk-in": "Added walk-in",
+    "queue.called": "Called a customer", "queue.no-show": "Marked a no-show", "queue.cancelled": "Cancelled a queue ticket",
+    "day.closed": "Closed the shop day", "service.finished": "Completed a service",
+    "appointment.booked": "Booked an appointment", "appointment.rescheduled": "Rescheduled an appointment",
+    "appointment.edited": "Updated an appointment", "appointment.cancelled": "Cancelled an appointment",
+    "appointment.checked-in": "Checked in an appointment", "appointment.status-updated": "Updated appointment status",
+    "customer.created": "Created a customer account", "customer.invited": "Invited a customer",
+    "customer.profile-updated": "Updated customer profile", "customer.activated": "Activated a customer",
+    "customer.deactivated": "Deactivated a customer", "customer.password-reset": "Reset customer password",
+    "staff.created": "Added staff", "staff.updated": "Changed staff account", "staff.password-reset": "Reset staff password",
+    "barber.created": "Added a barber", "barber.updated": "Updated a barber", "barber.availability": "Changed barber availability",
+    "barber.removed": "Removed a barber", "barber.restored": "Restored a barber",
+    "review.deleted": "Deleted a review", "service.created": "Added a service", "service.updated": "Updated a service",
+    "service.restored": "Restored a service", "service.hidden": "Hid a service", "inventory.created": "Added a product",
+    "inventory.updated": "Changed a product", "inventory.deleted": "Deleted a product",
+    "inventory.stock-in": "Added inventory stock", "inventory.stock-out": "Used inventory stock",
+    "inventory.archived": "Archived a product", "inventory.restored": "Restored a product"
+  };
+
   async function activity(body, actions) {
-    actions.innerHTML = `
-      <select class="select-input" id="activityFilter" aria-label="Filter activity">
-        <option value="">All activity</option>
-        <option value="login">Sign-ins (incl. failed)</option>
-        <option value="payment">Discounts and voids</option>
-        <option value="queue">No-shows and cancellations</option>
-        <option value="staff">Staff accounts</option>
-        <option value="customer">Customer accounts</option>
-        <option value="inventory">Inventory</option>
-        <option value="service">Services and prices</option>
-      </select>
-      <button class="secondary-btn" type="button" id="refreshActivity">Refresh</button>`;
-
+    // Filters live in the page content; the banner remains consistent with other Admin pages.
+    actions.innerHTML = "";
     body.innerHTML = `
-      <article class="card">
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th></tr></thead>
-            <tbody id="activityRows"></tbody>
-          </table>
-        </div>
+      <section class="card activity-filter-card" aria-label="Filter activity history">
+        <label class="activity-search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="activitySearch" type="search" placeholder="Search user, activity or details..." aria-label="Search activity"></label>
+        <select id="activityRole" aria-label="Filter by role"><option value="all">All Roles</option><option value="admin">Admin</option><option value="cashier">Cashier</option><option value="customer">Customer</option><option value="guest">Guest / System</option></select>
+        <select id="activityCategory" aria-label="Filter by activity"><option value="all">All Activities</option><option value="login">Login & Security</option><option value="appointment">Appointments</option><option value="queue">Queue & Walk-ins</option><option value="payment">Payments</option><option value="staff">Staff Accounts</option><option value="inventory">Inventory</option><option value="customer">Customers</option><option value="barber">Barbers</option><option value="service">Services</option></select>
+        <select id="activityDate" aria-label="Filter by date"><option value="all">All Dates</option><option value="today">Today</option><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option></select>
+        <select id="activitySort" aria-label="Sort activities"><option value="newest">Newest First</option><option value="oldest">Oldest First</option></select>
+        <button class="secondary-btn activity-clear" id="activityClear" type="button" hidden>Clear</button>
+      </section>
+      <article class="card activity-table-card">
+        <div class="activity-table-heading"><div><h2>Activity History</h2><p>Important actions by admins, cashiers and customers.</p></div><div class="activity-heading-right"><span id="activityCount" aria-live="polite"></span><button type="button" class="secondary-btn" id="refreshActivity">Refresh</button></div></div>
+        <div class="table-wrap"><table class="data-table activity-table"><thead><tr><th>No.</th><th>Date & Time</th><th>User</th><th>Role</th><th>Activity</th><th>Actions</th></tr></thead><tbody id="activityRows"></tbody></table></div>
+        <div class="activity-pagination"><span id="activitySummary"></span><div><button type="button" class="secondary-btn small" id="activityPrevious">Previous</button><span id="activityPage"></span><button type="button" class="secondary-btn small" id="activityNext">Next</button></div></div>
       </article>
-      <p class="muted small spaced">Shows the latest 300 entries. Failed sign-ins are highlighted; 5 in a row lock the account for 15 minutes.</p>`;
+      <p class="muted small spaced">The Activity Log is read-only. Shows the latest 300 recorded actions; older or previously unrecorded activity may not be available.</p>`;
 
-    const filter = actions.querySelector("#activityFilter");
-
-    async function load() {
-      const entries = await api(`/api/audit?action=${encodeURIComponent(filter.value)}`);
-      body.querySelector("#activityRows").innerHTML = entries.length ? entries.map(e => `
-        <tr class="${/failed/.test(e.action) ? "alert-row" : ""}">
-          <td>${App.dateTime(e.at)}</td>
-          <td>${escapeHTML(e.actorName || "—")}${e.actorRole ? ` <span class="muted small">${escapeHTML(e.actorRole)}</span>` : ""}</td>
-          <td>${escapeHTML(ACTION_LABELS[e.action] || e.action)}</td>
-          <td class="muted small details-cell">${escapeHTML(detailsText(e.details))}${e.ip ? ` · IP ${escapeHTML(e.ip)}` : ""}</td>
-        </tr>`).join("") : emptyRow(4, "No activity yet.");
+    let entries = [], page = 1;
+    const perPage = 10;
+    const $ = id => body.querySelector("#" + id);
+    const search = $("activitySearch"), role = $("activityRole"), category = $("activityCategory"), date = $("activityDate"), sort = $("activitySort");
+    const labelFor = e => ACTION_LABELS[e.action] || String(e.action || "Activity").replace(/[._-]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const timestamp = e => new Date(e.at).getTime() || 0;
+    const roleText = e => e.actorRole === "admin" ? "Admin" : e.actorRole === "cashier" ? "Cashier" : e.actorRole === "customer" ? "Customer" : "Guest / System";
+    const categoryFor = e => {
+      if (/^(login|logout|password|sessions)\b/.test(e.action)) return "login";
+      if (/^day\./.test(e.action)) return "queue";
+      return String(e.action || "").split(".")[0];
+    };
+    function filtered() {
+      const q = search.value.trim().toLocaleLowerCase();
+      const now = new Date();
+      const todayParts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now).map(part => [part.type, part.value]));
+      const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+      const dayStart = new Date(`${today}T00:00:00+08:00`).getTime();
+      return entries.filter(e => {
+        if (role.value !== "all" && (e.actorRole || "guest") !== role.value) return false;
+        if (category.value !== "all" && categoryFor(e) !== category.value) return false;
+        if (date.value === "today" && timestamp(e) < dayStart) return false;
+        if (date.value === "7" && timestamp(e) < Date.now() - 7 * 86400000) return false;
+        if (date.value === "30" && timestamp(e) < Date.now() - 30 * 86400000) return false;
+        return !q || `${e.actorName || ""} ${e.actorRole || ""} ${labelFor(e)} ${e.action || ""} ${detailsText(e.details)}`.toLocaleLowerCase().includes(q);
+      }).sort((a, b) => sort.value === "oldest" ? timestamp(a) - timestamp(b) : timestamp(b) - timestamp(a));
     }
-
-    const reload = () => load().catch(error => toast(error.message, "error"));
-    filter.addEventListener("change", reload);
-    actions.querySelector("#refreshActivity").addEventListener("click", event => busy(event.target, reload));
-    await load();
+    function draw() {
+      const items = filtered();
+      const pages = Math.max(1, Math.ceil(items.length / perPage));
+      page = Math.min(page, pages);
+      const start = (page - 1) * perPage;
+      const current = items.slice(start, start + perPage);
+      $("activityClear").hidden = !(search.value || role.value !== "all" || category.value !== "all" || date.value !== "all" || sort.value !== "newest");
+      $("activityCount").textContent = `${items.length} record${items.length === 1 ? "" : "s"}`;
+      $("activityRows").innerHTML = current.length ? current.map((e, i) => `
+        <tr class="${/failed|code-failed/.test(e.action) ? "activity-failed" : ""}"><td>${start + i + 1}</td><td class="activity-date">${App.dateTime(e.at)}</td><td><strong class="activity-actor">${escapeHTML(e.actorName || "Unknown / Guest")}</strong></td><td><span class="activity-role activity-role-${["admin", "cashier", "customer"].includes(e.actorRole) ? e.actorRole : "guest"}">${roleText(e)}</span></td><td><span class="activity-event">${escapeHTML(labelFor(e))}</span></td><td class="activity-actions"><button type="button" class="activity-view" data-activity-view="${escapeHTML(e.id)}" title="View activity details" aria-label="View details of ${escapeHTML(labelFor(e))}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/></svg></button></td></tr>`).join("") : emptyRow(6, "No activity matches your filters.");
+      $("activitySummary").textContent = `Showing ${items.length ? start + 1 : 0}–${Math.min(start + perPage, items.length)} of ${items.length}`;
+      $("activityPage").textContent = `Page ${page} of ${pages}`;
+      $("activityPrevious").disabled = page <= 1;
+      $("activityNext").disabled = page >= pages;
+    }
+    const refresh = async () => {
+      entries = await api("/api/audit");
+      if (!Array.isArray(entries)) entries = [];
+      draw();
+    };
+    [search, role, category, date, sort].forEach(el => el.addEventListener(el === search ? "input" : "change", () => { page = 1; draw(); }));
+    $("activityClear").addEventListener("click", () => { search.value = ""; role.value = "all"; category.value = "all"; date.value = "all"; sort.value = "newest"; page = 1; draw(); });
+    $("activityPrevious").addEventListener("click", () => { if (page > 1) { page--; draw(); } });
+    $("activityNext").addEventListener("click", () => { if (page * perPage < filtered().length) { page++; draw(); } });
+    $("refreshActivity").addEventListener("click", event => busy(event.currentTarget, async () => { try { await refresh(); } catch (error) { toast(error.message, "error"); } }));
+    body.addEventListener("click", event => {
+      const button = event.target.closest("[data-activity-view]");
+      if (!button) return;
+      const e = entries.find(row => row.id === button.dataset.activityView);
+      if (!e) return;
+      const details = Object.entries(e.details || {}).filter(([key, value]) => value !== null && value !== undefined && value !== "" && !/password|token|secret|otp|codeHash/i.test(key));
+      openDialog(`<div class="activity-detail-dialog"><h2>Activity Details</h2><p class="muted">Recorded action information</p><dl><div><dt>Activity</dt><dd>${escapeHTML(labelFor(e))}</dd></div><div><dt>Performed by</dt><dd>${escapeHTML(e.actorName || "Unknown / Guest")}</dd></div><div><dt>Role</dt><dd>${roleText(e)}</dd></div><div><dt>Date & Time</dt><dd>${escapeHTML(App.dateTime(e.at))}</dd></div>${details.map(([key, value]) => `<div><dt>${escapeHTML(key.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase()))}</dt><dd>${escapeHTML(typeof value === "object" ? JSON.stringify(value) : String(value))}</dd></div>`).join("")}${e.ip ? `<div><dt>IP Address</dt><dd>${escapeHTML(e.ip)}</dd></div>` : ""}</dl><div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
+    });
+    await refresh();
   }
 
   // Match the Cashier management banners while preserving the existing heading-actions node.

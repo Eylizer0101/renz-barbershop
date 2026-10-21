@@ -189,6 +189,7 @@ router.post("/product-sale", ...staffOnly, async (req, res) => {
 
   const result = await db.collection("payments").insertOne(payment);
 
+  await audit(req, "payment.product-sale", { product: item.name, quantity, amount: payment.amount, paymentId: String(result.insertedId) });
   res.status(201).json({
     message: `Sold ${quantity} × ${item.name}.`,
     payment: paymentView({ _id: result.insertedId, ...payment }),

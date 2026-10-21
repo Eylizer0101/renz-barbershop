@@ -3,6 +3,7 @@ const express = require('express');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { toObjectId, cleanText } = require('../utils/validation');
 const { sendAppointmentEmail } = require('../utils/mailer');
+const { audit } = require('../utils/security');
 const router = express.Router();
 const customerOnly = [requireAuth, requireRole('customer')];
 const staffOnly = [requireAuth, requireRole('admin', 'cashier')];
@@ -291,6 +292,7 @@ router.post('/',...customerOnly,async(req,res)=>{
   }
   if(!appointment)return res.status(409).json({error:'No barber is available at that time. Please choose another slot.'});
   try{await notify(db,appointment,'created',appointment.status==='confirmed'?'Renz Barbershop: Booking confirmed':'Renz Barbershop: Booking received',`Hi ${appointment.customerName}, your ${appointment.service} with ${appointment.barberName} is ${appointment.status} for ${date} at ${time}. Payment: ${appointment.method}.`);}catch(error){console.error("Appointment notification failed:",error.message);}
+  await audit(req, 'appointment.booked', { appointmentId: String(appointment._id), service: appointment.service, date, time });
   res.status(201).json(view(appointment));
 });
 // Customer rescheduling is restricted to the same service, barber and payment method.
@@ -366,6 +368,7 @@ router.patch('/:id/reschedule', ...customerOnly, async (req, res) => {
     await notify(db, updated, `rescheduled:${updated.startsAt.toISOString()}:${Date.now()}`, 'Renz Barbershop: Appointment rescheduled',
       `Your ${updated.service} with ${updated.barberName} was rescheduled to ${date} at ${time}.`);
   } catch (error) { console.error('Appointment reschedule notification failed:', error.message); }
+  await audit(req, 'appointment.rescheduled', { appointmentId: String(updated._id), service: updated.service, date, time });
   res.json({ message: 'Appointment rescheduled.', appointment: view(updated) });
 });
 // Edit an existing appointment without creating a new booking.
@@ -423,6 +426,7 @@ router.patch('/:id/edit',...customerOnly,async(req,res)=>{
     return res.status(500).json({error:'Unable to save appointment changes. Please try again.'});
   }finally{await session.endSession();}
   try{await notify(db,updated,`edited:${Date.now()}`, 'Renz Barbershop: Appointment updated',`Your appointment is now ${updated.service} with ${updated.barberName} on ${date} at ${time}. Payment: ${method}.`);}catch(e){console.error('Edit notification failed:',e.message);}
+  await audit(req, 'appointment.edited', { appointmentId: String(updated._id), service: updated.service, date, time });
   res.json({message:'Appointment updated successfully.',appointment:view(updated)});
 });
 router.post('/:id/cancel',requireAuth,async(req,res)=>{
@@ -433,6 +437,7 @@ router.post('/:id/cancel',requireAuth,async(req,res)=>{
   if(!a)return res.status(409).json({error:'Appointment not found or cannot be cancelled.'});
   await db.collection('appointmentSlots').deleteMany({appointmentId:a._id});
   try{await notify(db,a,'cancelled','Renz Barbershop: Booking cancelled',`Your appointment for ${a.service} with ${a.barberName} was cancelled.`);}catch(error){console.error("Appointment notification failed:",error.message);}
+  await audit(req, 'appointment.cancelled', { appointmentId: String(a._id), service: a.service, customer: a.customerName });
   res.json({message:'Appointment cancelled.'});
 });
 
@@ -464,6 +469,7 @@ router.post('/:id/checkin',...staffOnly,async(req,res)=>{
     });
   }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
   try{await notify(db,a,'checked-in','Renz Barbershop: Checked in',`You are checked in for ${a.service}. Your queue number is #${ticket.queueNumber}.`);}catch(error){console.error("Appointment notification failed:",error.message);}
+  await audit(req, 'appointment.checked-in', { appointmentId: String(a._id), customer: a.customerName, queueNumber: ticket.queueNumber });
   res.json({message:`Checked in as queue #${ticket.queueNumber}. Complete service and collect payment using Front Desk.`,queueNumber:ticket.queueNumber});
 });
 
@@ -475,6 +481,7 @@ router.post('/:id/status',...staffOnly,async(req,res)=>{
   if(!a)return res.status(409).json({error:'Appointment has already changed.'});
   if(status==='no-show')await db.collection('appointmentSlots').deleteMany({appointmentId:a._id});
   try{await notify(db,a,status,`Renz Barbershop: Appointment ${status}`,`Your appointment with ${a.barberName} is now ${status}.`);}catch(error){console.error("Appointment notification failed:",error.message);}
+  await audit(req, 'appointment.status-updated', { appointmentId: String(a._id), customer: a.customerName, status });
   res.json({message:`Appointment ${status}.`});
 });
 module.exports={router,notify};
