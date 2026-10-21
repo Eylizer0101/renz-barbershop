@@ -102,6 +102,7 @@ router.post("/login", loginLimiter, async (req, res) => {
   if (!user || !passwordOk) {
     const locked = user ? await recordFailure(db, user) : false;
     await audit(req, "login.failed", { email, locked });
+    if (locked) return res.status(429).json(lockedMessage({ lockedUntil: Date.now() + LOCK_MS }));
     return res.status(401).json({ error: "Invalid email or password." });
   }
 
