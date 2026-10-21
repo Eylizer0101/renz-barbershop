@@ -389,3 +389,12 @@ body.login-page:has(#registerForm) .login-back-link { z-index: 3; }
 .login-brand .brand-icon img{display:block;width:68px;height:68px;object-fit:contain}
 body.login-page:has(#registerForm) .login-brand .brand-icon img{width:65px;height:65px}
 @media(max-width:760px){.login-brand .brand-icon img{width:40px;height:40px}body.login-page:has(#registerForm) .login-brand .brand-icon img{width:42px;height:42px}}
+
+/* Center the existing Golden Scissors branding above RENZ on login/register. */
+body.login-page:has(#registerForm) .login-brand-overlay > .brand-icon {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 14px;
+}
