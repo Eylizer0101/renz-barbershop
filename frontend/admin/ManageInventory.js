@@ -3,7 +3,17 @@
   "use strict";
   const { api, escapeHTML, money, setMessage, openDialog, confirmDialog, toast, busy } = App;
   const { emptyRow } = Desk;
-  const barChart = (...args) => window.AdminAnalytics.barChart(...args);
+  // Inventory's monthly chart is self-contained; AdminAnalytics only exports render().
+  function barChart(values, emptyMessage) {
+    const rows = Array.isArray(values) ? values : [];
+    const max = Math.max(0, ...rows.map(row => Number(row.count) || 0));
+    if (!max) return `<p class="muted small" style="padding:20px 0;text-align:center">${escapeHTML(emptyMessage)}</p>`;
+    return `<div class="bar-chart" role="img" aria-label="Monthly product sales">${rows.map(row => {
+      const count = Math.max(0, Number(row.count) || 0);
+      const height = Math.max(2, count / max * 100);
+      return `<div class="bar-col" title="${escapeHTML(row.label)}: ${count} sold"><span class="bar-value">${count}</span><div class="bar" style="height:${height}%"></div><span class="bar-label">${escapeHTML(row.label)}</span></div>`;
+    }).join("")}</div>`;
+  }
 
   // ---------- Inventory ----------
   async function inventory(body, actions) {
@@ -96,7 +106,7 @@
       $("invNext").disabled = page >= pages;
     }
     async function load() {
-      const [items, monthly] = await Promise.all([api("/api/inventory"), api("/api/analytics/inventory-monthly")]);
+      const items = await api("/api/inventory");
       list = Array.isArray(items) ? items : [];
       const categories = [...new Set(list.map(i => i.category || "").filter(Boolean))].sort();
       const selectedCategory = category.value;
@@ -104,7 +114,14 @@
       category.value = categories.includes(selectedCategory) ? selectedCategory : "all";
       draw();
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      $("monthlyChart").innerHTML = barChart((monthly.months || []).map(m => ({ label: months[m.month - 1], count: m.sold })), "No products sold this year yet.");
+      // A chart request failure must not hide the inventory table or its actions.
+      try {
+        const monthly = await api("/api/analytics/inventory-monthly");
+        $("monthlyChart").innerHTML = barChart((monthly.months || []).map(m => ({ label: months[m.month - 1], count: m.sold })), "No products sold this year yet.");
+      } catch (error) {
+        $("monthlyChart").innerHTML = `<p class="muted small" style="padding:20px 0;text-align:center">Monthly sales chart is unavailable right now.</p>`;
+        console.error("Inventory monthly chart:", error);
+      }
     }
     function details(item) {
       openDialog(`<div class="inventory-detail-dialog"><h2>Product Details</h2><h3>${escapeHTML(item.name)}</h3><dl>
