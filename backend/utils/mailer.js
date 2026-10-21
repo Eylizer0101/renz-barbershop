@@ -14,9 +14,6 @@ const transporter = smtpConfigured
     host: mailHost,
     port: mailPort,
     secure: mailPort === 465,
-    connectionTimeout: 12000,
-    greetingTimeout: 12000,
-    socketTimeout: 20000,
     auth: {
       user: mailUser,
       pass: mailPass
@@ -24,42 +21,26 @@ const transporter = smtpConfigured
   })
   : null;
 
-// Render Free may block outbound SMTP. When an HTTPS Brevo API key is configured,
-// use it rather than relying on SMTP ports. The sender must be verified in Brevo.
-async function sendBrevoMail(email, subject, text, html) {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) return false;
-  const senderEmail = process.env.BREVO_FROM_EMAIL;
-  if (!senderEmail) throw new Error('BREVO_FROM_EMAIL must be set to a verified sender to use the Brevo HTTPS API.');
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        sender: { email: senderEmail, name: process.env.BREVO_FROM_NAME || 'RENZ BARBERSHOP' },
-        to: [{ email }], subject, textContent: text, htmlContent: html
-      }),
-      signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`Brevo email API rejected request (HTTP ${response.status}). Check API key, account status, and verified sender.`);
-    return true;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function send2FA(email, code) {
-  const subject = 'Barbershop Admin Login Verification Code';
-  const text = `Your Barbershop verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`;
-  const html = `<h2>Barbershop Login Verification</h2>
+  if (!transporter) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SMTP is not configured.");
+    }
+
+    // Never log verification codes or claim delivery without SMTP.
+    throw new Error("SMTP is not configured.");
+  }
+
+  await transporter.sendMail({
+    from: mailFrom,
+    to: email,
+    subject: "Barbershop Admin Login Verification Code",
+    text: `Your Barbershop verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
+    html: `<h2>Barbershop Login Verification</h2>
            <p>Your verification code is:</p>
            <h1 style="letter-spacing:6px">${code}</h1>
-           <p>This code expires in 10 minutes.</p>`;
-  if (await sendBrevoMail(email, subject, text, html)) return;
-  if (!transporter) throw new Error('SMTP is not configured.');
-  await transporter.sendMail({ from: mailFrom, to: email, subject, text, html });
+           <p>This code expires in 10 minutes.</p>`
+  });
 }
 
 // Email-only presentation helpers. All user-entered fields are escaped before
@@ -106,15 +87,16 @@ function appointmentEmailHTML(subject, message, appointment) {
 }
 
 async function sendAppointmentEmail(email, subject, message, appointment = null) {
-  const html = appointmentEmailHTML(subject, message, appointment);
-  if (await sendBrevoMail(email, subject, message, html)) return;
   if (!transporter) {
+    // Do not silently claim delivery when SMTP is unconfigured.
     console.warn('[Appointments] SMTP is not configured; customer email was not sent.');
     throw new Error('SMTP is not configured.');
   }
-  await transporter.sendMail({ from: mailFrom, to: email, subject, text: message, html });
+  await transporter.sendMail({
+    from: mailFrom, to: email, subject, text: message,
+    html: appointmentEmailHTML(subject, message, appointment)
+  });
 }
-
 async function sendCustomerVerification(email, code) {
   const senderEmail = process.env.BREVO_FROM_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
   if (!senderEmail) throw new Error("Sender email is not configured.");
