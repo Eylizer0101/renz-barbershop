@@ -9,35 +9,103 @@
   // ---------- Staff ----------
 
   async function staff(body, actions) {
-    actions.innerHTML = '<button class="primary-btn" type="button" id="addStaff">+ Add staff</button>';
+    actions.innerHTML = `<button class="primary-btn" type="button" id="addStaff">+ Add staff</button>
+      <span class="staff-actions-divider" aria-hidden="true"></span>
+      <div class="staff-tabs" role="group" aria-label="Staff account lists">
+        <button type="button" class="staff-tab active" data-staff-tab="active" aria-pressed="true">Active <span id="staffActiveCount">0</span></button>
+        <button type="button" class="staff-tab" data-staff-tab="deactivated" aria-pressed="false">Deactivated <span id="staffInactiveCount">0</span></button>
+      </div>`;
     body.innerHTML = `
-      <article class="card">
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
-            <tbody id="staffRows"></tbody>
-          </table>
-        </div>
+      <section class="card staff-filter-card" aria-label="Filter staff accounts">
+        <label class="staff-search-field"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input type="search" id="staffSearch" placeholder="Search staff name or email..." aria-label="Search staff"></label>
+        <select id="staffRoleFilter" aria-label="Filter by staff role"><option value="all">All Roles</option><option value="admin">Admin</option><option value="cashier">Cashier</option></select>
+        <select id="staffStatusFilter" aria-label="Filter by account status"><option value="all">All Status</option><option value="active">Active</option><option value="deactivated">Deactivated</option></select>
+        <select id="staffSort" aria-label="Sort staff"><option value="name">Name A - Z</option><option value="name-desc">Name Z - A</option><option value="newest">Newest First</option></select>
+        <button class="secondary-btn staff-clear" id="staffClear" type="button" hidden>Clear</button>
+      </section>
+      <article class="card staff-table-card">
+        <div class="staff-table-heading"><div><h2 id="staffTableTitle">Active Staff</h2><p>Manage staff accounts, assigned roles and access.</p></div><span id="staffResultCount" aria-live="polite"></span></div>
+        <div class="table-wrap"><table class="data-table staff-table"><thead><tr><th>No.</th><th>Staff</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="staffRows"></tbody></table></div>
+        <div class="staff-pagination"><span id="staffSummary"></span><div><button type="button" class="secondary-btn small" id="staffPrevious">Previous</button><span id="staffPage"></span><button type="button" class="secondary-btn small" id="staffNext">Next</button></div></div>
       </article>
       <p class="muted small spaced">Cashiers run the front desk: queue, payments and customers. Admins can also manage barbers, services, inventory, staff, reports and the activity log. New staff must change their one-time password before they can do anything.</p>`;
 
-    let list = [];
+    let list = [], currentTab = "active", page = 1;
+    const pageSize = 10;
+    const $ = id => body.querySelector("#" + id);
+    const search = $("staffSearch"), roleFilter = $("staffRoleFilter"), statusFilter = $("staffStatusFilter"), sort = $("staffSort");
+    const svgIcons = {
+      view: '<circle cx="12" cy="12" r="3"/><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>',
+      role: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/><path d="m18 8 2 2 3-3"/>',
+      more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+    };
+    const icon = name => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgIcons[name]}</svg>`;
+    const buttonHTML = (action, s, label, symbol) => `<button type="button" class="staff-icon-btn" data-${action}="${escapeHTML(s.id)}" title="${label}" aria-label="${label} ${escapeHTML(s.name)}">${icon(symbol)}</button>`;
+
+    function filtered() {
+      const query = search.value.trim().toLocaleLowerCase();
+      return list.filter(s => {
+        if (s.active !== (currentTab === "active")) return false;
+        if (roleFilter.value !== "all" && s.role !== roleFilter.value) return false;
+        if (statusFilter.value !== "all" && (s.active ? "active" : "deactivated") !== statusFilter.value) return false;
+        return !query || `${s.name} ${s.email}`.toLocaleLowerCase().includes(query);
+      }).sort((a, b) => {
+        if (sort.value === "newest") return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0) || String(a.name).localeCompare(String(b.name));
+        const n = String(a.name).localeCompare(String(b.name));
+        return sort.value === "name-desc" ? -n : n;
+      });
+    }
+
+    function draw() {
+      const active = list.filter(s => s.active).length;
+      actions.querySelector("#staffActiveCount").textContent = active;
+      actions.querySelector("#staffInactiveCount").textContent = list.length - active;
+      actions.querySelectorAll("[data-staff-tab]").forEach(tab => {
+        const selected = tab.dataset.staffTab === currentTab;
+        tab.classList.toggle("active", selected);
+        tab.setAttribute("aria-pressed", String(selected));
+      });
+      $("staffClear").hidden = !(search.value || roleFilter.value !== "all" || statusFilter.value !== "all" || sort.value !== "name");
+      $("staffTableTitle").textContent = currentTab === "active" ? "Active Staff" : "Deactivated Staff";
+      const items = filtered();
+      const pages = Math.max(1, Math.ceil(items.length / pageSize));
+      page = Math.min(page, pages);
+      const start = (page - 1) * pageSize;
+      const visible = items.slice(start, start + pageSize);
+      $("staffResultCount").textContent = `${items.length} staff`;
+      $("staffRows").innerHTML = visible.length ? visible.map((s, i) => `
+        <tr class="${s.active ? "" : "inactive"}">
+          <td>${start + i + 1}</td>
+          <td><div class="staff-person"><span class="staff-avatar" aria-hidden="true">${escapeHTML((s.name || "S").trim().charAt(0).toUpperCase())}</span><span><strong>${escapeHTML(s.name)}</strong>${s.isYou ? ' <span class="chip">You</span>' : ""}</span></div></td>
+          <td class="staff-email">${escapeHTML(s.email)}</td>
+          <td><span class="staff-role-tag">${s.role === "admin" ? "Admin" : "Cashier"}</span></td>
+          <td>${s.active ? '<span class="status-pill completed">Active</span>' : '<span class="status-pill cancelled">Deactivated</span>'}</td>
+          <td class="row-actions"><span class="staff-action-group">
+            ${buttonHTML("staff-view", s, "View details for", "view")}
+            ${s.isYou ? '<span class="muted small staff-self-note">My Account</span>' : `${buttonHTML("staff-role", s, "Change role for", "role")}${buttonHTML("staff-more", s, "More actions for", "more")}`}
+          </span></td>
+        </tr>`).join("") : emptyRow(6, "No matching staff accounts found.");
+      $("staffSummary").textContent = `Showing ${items.length ? start + 1 : 0}–${Math.min(start + pageSize, items.length)} of ${items.length}`;
+      $("staffPage").textContent = `Page ${page} of ${pages}`;
+      $("staffPrevious").disabled = page <= 1;
+      $("staffNext").disabled = page >= pages;
+    }
 
     async function load() {
       list = await api("/api/staff");
-      body.querySelector("#staffRows").innerHTML = list.map(s => `
-        <tr class="${s.active ? "" : "inactive"}">
-          <td><strong>${escapeHTML(s.name)}</strong>${s.isYou ? ' <span class="chip">You</span>' : ""}</td>
-          <td>${escapeHTML(s.email)}</td>
-          <td>${s.role === "admin" ? "Admin" : "Cashier"}</td>
-          <td>${s.active ? '<span class="status-pill completed">Active</span>' : '<span class="status-pill cancelled">Deactivated</span>'}</td>
-          <td class="row-actions">${s.isYou ? '<span class="muted small">Change your own password under My Account</span>' : `
-            <button class="secondary-btn small" type="button" data-role="${s.id}">${s.role === "admin" ? "Make cashier" : "Make admin"}</button>
-            <button class="secondary-btn small" type="button" data-reset="${s.id}">Reset password</button>
-            <button class="${s.active ? "danger-btn" : "secondary-btn"} small" type="button" data-toggle="${s.id}">${s.active ? "Deactivate" : "Activate"}</button>`}
-          </td>
-        </tr>`).join("");
+      draw();
     }
+
+    [search, roleFilter, statusFilter, sort].forEach(control => control.addEventListener(control === search ? "input" : "change", () => { page = 1; draw(); }));
+    $("staffClear").addEventListener("click", () => { search.value = ""; roleFilter.value = "all"; statusFilter.value = "all"; sort.value = "name"; page = 1; draw(); });
+    actions.querySelectorAll("[data-staff-tab]").forEach(tab => tab.addEventListener("click", () => {
+      currentTab = tab.dataset.staffTab;
+      statusFilter.value = "all";
+      page = 1;
+      draw();
+    }));
+    $("staffPrevious").addEventListener("click", () => { if (page > 1) { page--; draw(); } });
+    $("staffNext").addEventListener("click", () => { if (page * pageSize < filtered().length) { page++; draw(); } });
 
     actions.querySelector("#addStaff").addEventListener("click", () => {
       const { element, close } = openDialog(`
@@ -47,13 +115,9 @@
           <label for="stEmail">Email *</label><input id="stEmail" name="email" type="email" required>
           <label for="stRole">Role</label>
           <select id="stRole" name="role"><option value="cashier">Cashier</option><option value="admin">Admin</option></select>
-          <div class="form-actions">
-            <button class="primary-btn" type="submit">Create account</button>
-            <button class="secondary-btn" type="button" data-close>Cancel</button>
-          </div>
+          <div class="form-actions"><button class="primary-btn" type="submit">Create account</button><button class="secondary-btn" type="button" data-close>Cancel</button></div>
           <p class="message" id="stMessage"></p>
         </form>`);
-
       element.querySelector("form").addEventListener("submit", async event => {
         event.preventDefault();
         const f = event.target;
@@ -63,25 +127,36 @@
             close();
             App.showTemporaryPassword("Staff account created", result.name, result.temporaryPassword);
             await load();
-          } catch (error) {
-            setMessage(element.querySelector("#stMessage"), error.message, "error");
-          }
+          } catch (error) { setMessage(element.querySelector("#stMessage"), error.message, "error"); }
         });
       });
     });
 
-    body.addEventListener("click", async event => {
-      const button = event.target.closest("button");
-      const member = button && list.find(s => s.id === (button.dataset.role || button.dataset.reset || button.dataset.toggle));
-      if (!member) return;
+    function showDetails(member) {
+      openDialog(`<div class="staff-detail-dialog"><h2>Staff Details</h2><div class="staff-detail-top"><span class="staff-avatar staff-avatar-large" aria-hidden="true">${escapeHTML((member.name || "S").trim().charAt(0).toUpperCase())}</span><div><h3>${escapeHTML(member.name)}</h3><p class="muted">${escapeHTML(member.email)}</p></div></div><dl>
+        <div><dt>Role</dt><dd>${member.role === "admin" ? "Admin" : "Cashier"}</dd></div>
+        <div><dt>Status</dt><dd>${member.active ? "Active" : "Deactivated"}</dd></div>
+        <div><dt>Account created</dt><dd>${member.createdAt ? new Date(member.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "—"}</dd></div>
+      </dl><div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
+    }
 
+    function showMore(member) {
+      const { element, close } = openDialog(`<div class="staff-more-dialog"><h2>More Actions</h2><p class="muted">Manage access for <strong>${escapeHTML(member.name)}</strong>.</p>
+        <button type="button" class="staff-more-option" data-staff-reset-action><strong>Reset Password</strong><small>Issue a new one-time password and sign out existing sessions.</small></button>
+        <button type="button" class="staff-more-option ${member.active ? "staff-more-danger" : ""}" data-staff-toggle-action><strong>${member.active ? "Deactivate" : "Activate"} Account</strong><small>${member.active ? "Remove sign-in access and end current sessions." : "Restore sign-in access for this staff member."}</small></button>
+        <div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
+      element.querySelector("[data-staff-reset-action]").addEventListener("click", () => { close(); changeMember(member, "reset"); });
+      element.querySelector("[data-staff-toggle-action]").addEventListener("click", () => { close(); changeMember(member, "toggle"); });
+    }
+
+    async function changeMember(member, action) {
       try {
-        if (button.dataset.role) {
+        if (action === "role") {
           const role = member.role === "admin" ? "cashier" : "admin";
           if (!await confirmDialog(`Make ${member.name} ${role === "admin" ? "an admin" : "a cashier"}? They will be signed out and must sign in again.`, { title: "Change role", confirmText: role === "admin" ? "Make admin" : "Make cashier" })) return;
           await api(`/api/staff/${member.id}`, { method: "PATCH", body: { role } });
           toast(`${member.name} is now ${role === "admin" ? "an admin" : "a cashier"}.`);
-        } else if (button.dataset.reset) {
+        } else if (action === "reset") {
           if (!await confirmDialog(`Reset the password for ${member.name}? They will be signed out everywhere and get a one-time password.`, { title: "Reset password", confirmText: "Reset password" })) return;
           const result = await api(`/api/staff/${member.id}/reset-password`, { method: "POST" });
           App.showTemporaryPassword("Password reset", member.name, result.temporaryPassword);
@@ -92,9 +167,19 @@
           toast(`${member.name} ${turnOff ? "deactivated" : "activated"}.`);
         }
         await load();
-      } catch (error) {
-        toast(error.message, "error");
-      }
+      } catch (error) { toast(error.message, "error"); }
+    }
+
+    body.addEventListener("click", event => {
+      const button = event.target.closest("button[data-staff-view],button[data-staff-role],button[data-staff-more]");
+      if (!button) return;
+      const id = button.dataset.staffView || button.dataset.staffRole || button.dataset.staffMore;
+      const member = list.find(s => s.id === id);
+      if (!member) return;
+      if (button.dataset.staffView) showDetails(member);
+      else if (member.isYou) return;
+      else if (button.dataset.staffRole) changeMember(member, "role");
+      else showMore(member);
     });
 
     await load();
