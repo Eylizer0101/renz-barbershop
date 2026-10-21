@@ -36,8 +36,7 @@
     const search = $("staffSearch"), roleFilter = $("staffRoleFilter"), statusFilter = $("staffStatusFilter"), sort = $("staffSort");
     const svgIcons = {
       view: '<circle cx="12" cy="12" r="3"/><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>',
-      role: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/><path d="m18 8 2 2 3-3"/>',
-      more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+      role: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/><path d="m18 8 2 2 3-3"/>'
     };
     const icon = name => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svgIcons[name]}</svg>`;
     const buttonHTML = (action, s, label, symbol) => `<button type="button" class="staff-icon-btn" data-${action}="${escapeHTML(s.id)}" title="${label}" aria-label="${label} ${escapeHTML(s.name)}">${icon(symbol)}</button>`;
@@ -82,7 +81,7 @@
           <td>${s.active ? '<span class="status-pill completed">Active</span>' : '<span class="status-pill cancelled">Deactivated</span>'}</td>
           <td class="row-actions"><span class="staff-action-group">
             ${buttonHTML("staff-view", s, "View details for", "view")}
-            ${s.isYou ? '<span class="muted small staff-self-note">My Account</span>' : `${buttonHTML("staff-role", s, "Change role for", "role")}${buttonHTML("staff-more", s, "More actions for", "more")}`}
+            ${s.isYou ? '<span class="muted small staff-self-note">My Account</span>' : `${buttonHTML("staff-role", s, "Change role for", "role")}<button type="button" class="${s.active ? "danger-btn" : "secondary-btn"} small" data-staff-toggle="${escapeHTML(s.id)}">${s.active ? "Deactivate" : "Activate"}</button>`}
           </span></td>
         </tr>`).join("") : emptyRow(6, "No matching staff accounts found.");
       $("staffSummary").textContent = `Showing ${items.length ? start + 1 : 0}–${Math.min(start + pageSize, items.length)} of ${items.length}`;
@@ -140,15 +139,6 @@
       </dl><div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
     }
 
-    function showMore(member) {
-      const { element, close } = openDialog(`<div class="staff-more-dialog"><h2>More Actions</h2><p class="muted">Manage access for <strong>${escapeHTML(member.name)}</strong>.</p>
-        <button type="button" class="staff-more-option" data-staff-reset-action><strong>Reset Password</strong><small>Issue a new one-time password and sign out existing sessions.</small></button>
-        <button type="button" class="staff-more-option ${member.active ? "staff-more-danger" : ""}" data-staff-toggle-action><strong>${member.active ? "Deactivate" : "Activate"} Account</strong><small>${member.active ? "Remove sign-in access and end current sessions." : "Restore sign-in access for this staff member."}</small></button>
-        <div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
-      element.querySelector("[data-staff-reset-action]").addEventListener("click", () => { close(); changeMember(member, "reset"); });
-      element.querySelector("[data-staff-toggle-action]").addEventListener("click", () => { close(); changeMember(member, "toggle"); });
-    }
-
     async function changeMember(member, action) {
       try {
         if (action === "role") {
@@ -156,10 +146,6 @@
           if (!await confirmDialog(`Make ${member.name} ${role === "admin" ? "an admin" : "a cashier"}? They will be signed out and must sign in again.`, { title: "Change role", confirmText: role === "admin" ? "Make admin" : "Make cashier" })) return;
           await api(`/api/staff/${member.id}`, { method: "PATCH", body: { role } });
           toast(`${member.name} is now ${role === "admin" ? "an admin" : "a cashier"}.`);
-        } else if (action === "reset") {
-          if (!await confirmDialog(`Reset the password for ${member.name}? They will be signed out everywhere and get a one-time password.`, { title: "Reset password", confirmText: "Reset password" })) return;
-          const result = await api(`/api/staff/${member.id}/reset-password`, { method: "POST" });
-          App.showTemporaryPassword("Password reset", member.name, result.temporaryPassword);
         } else {
           const turnOff = member.active;
           if (!await confirmDialog(`${turnOff ? "Deactivate" : "Activate"} ${member.name}?${turnOff ? " They will be signed out immediately and can't sign in." : ""}`, { title: turnOff ? "Deactivate staff" : "Activate staff", confirmText: turnOff ? "Deactivate" : "Activate", danger: turnOff })) return;
@@ -171,15 +157,15 @@
     }
 
     body.addEventListener("click", event => {
-      const button = event.target.closest("button[data-staff-view],button[data-staff-role],button[data-staff-more]");
+      const button = event.target.closest("button[data-staff-view],button[data-staff-role],button[data-staff-toggle]");
       if (!button) return;
-      const id = button.dataset.staffView || button.dataset.staffRole || button.dataset.staffMore;
+      const id = button.dataset.staffView || button.dataset.staffRole || button.dataset.staffToggle;
       const member = list.find(s => s.id === id);
       if (!member) return;
       if (button.dataset.staffView) showDetails(member);
       else if (member.isYou) return;
       else if (button.dataset.staffRole) changeMember(member, "role");
-      else showMore(member);
+      else changeMember(member, "toggle");
     });
 
     await load();
