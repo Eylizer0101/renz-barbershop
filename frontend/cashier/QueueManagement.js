@@ -1,6 +1,6 @@
 // Front-desk screens shared by the cashier and admin pages, available as window.Desk.
 (function () {
-  const { api, escapeHTML, money, time, waitedText, minutesSince, setMessage, statusPill, openDialog, confirmDialog, toast, busy } = window.App;
+  const { api, escapeHTML, money, time, waitedText, minutesSince, setMessage, statusPill, openDialog, confirmDialog, toast, busy, safePhoto } = window.App;
 
   const METHODS = [
     { value: "cash", label: "Cash" },
@@ -137,6 +137,13 @@
     let barbers = [];
     let totalCustomersToday = 0;
 
+    // Keep the existing initial avatar if a barber's saved photo cannot be loaded.
+    $("barberDesk").addEventListener("error", event => {
+      const img = event.target;
+      if (!(img instanceof HTMLImageElement) || !img.matches(".desk-barber-avatar img")) return;
+      img.parentElement.textContent = img.dataset.initial || "B";
+    }, true);
+
     const services = await api("/api/services");
     $("walkInService").innerHTML = serviceOptions(services);
 
@@ -183,10 +190,12 @@
         const current = serving.find(t => t.barberId === b.id);
         const callable = waiting.filter(t => !t.preferredBarberId || t.preferredBarberId === b.id).length;
         const label = b.status === "busy" && current ? `Serving #${current.queueNumber}` : b.status === "available" ? "Available" : "Off duty";
+        const initial = escapeHTML((b.name || "B").trim().split(/\s+/).slice(-1)[0].charAt(0).toUpperCase());
+        const photo = safePhoto(b.photoUrl);
 
         return `
           <div class="barber-row">
-            <div class="desk-barber-info"><span class="desk-barber-avatar" aria-hidden="true">${escapeHTML((b.name || "B").trim().split(/\s+/).slice(-1)[0].charAt(0).toUpperCase())}</span><div>
+            <div class="desk-barber-info"><span class="desk-barber-avatar" aria-hidden="true">${photo ? `<img src="${escapeHTML(photo)}" alt="" loading="lazy" decoding="async" data-initial="${initial}">` : initial}</span><div>
               <strong>${escapeHTML(b.name)}</strong>
               <span class="barber-status ${b.status}">${label}</span>
               <div class="muted small">${b.status === "busy" && current ? `${escapeHTML(current.customerName || `Walk-in #${current.queueNumber}`)} · ${escapeHTML(current.service)}` : `${callable} eligible customer${callable === 1 ? "" : "s"} waiting`}</div>
