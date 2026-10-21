@@ -543,7 +543,10 @@
     document.title = "Customer Dashboard | Renz Barbershop";
   });
 
+  let queueRequest = null;
   async function loadQueue() {
+    if (queueRequest) return queueRequest;
+    queueRequest = (async () => {
     try {
       const { ticket } = await api("/api/queue/mine");
       state.ticket = ticket;
@@ -552,6 +555,8 @@
       state.ticket = null;
     }
     renderTicket();
+    })();
+    try { return await queueRequest; } finally { queueRequest = null; }
   }
 
   $("joinPanel").addEventListener("submit", async event => {
@@ -1090,5 +1095,7 @@
   await Promise.all([loadOptions(), loadQueue()]);
   refreshDashboardShortcuts();
   setInterval(() => { if (!$("dashboardPage").hidden) refreshDashboardShortcuts(); }, 30000);
-  setInterval(loadQueue, 10000);
+  setInterval(() => {
+    if (!document.hidden && (!$(`dashboardPage`).hidden || !$(`queuePage`).hidden)) loadQueue();
+  }, 10000);
 })();

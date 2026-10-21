@@ -271,7 +271,7 @@
         if(scheduleError){setMessage(message,scheduleError,'error');return;}
         if(editing&&!changed()){setMessage(message,'No changes to save.','error');return;}
         // Give immediate feedback before submitting; server repeats these checks atomically.
-        try{
+        if (!editing) try{
           const existing=await api('/api/appointments/mine');
           const active=['pending','confirmed','checked-in'];
           const day=dateInput.value;

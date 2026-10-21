@@ -79,13 +79,19 @@ async function notify(db, a, type, title, message) {
   try {
     await db.collection('appointmentNotifications').insertOne({eventKey,appointmentId:a._id,customerId:a.customerId,type,title,message,read:false,createdAt:new Date(),emailStatus:'pending',emailAttempts:0,staffReadBy:[]});
   } catch (err) { if (err.code === 11000) return; throw err; }
-  try {
-    await sendAppointmentEmail(a.customerEmail,title,message,a);
-    await db.collection('appointmentNotifications').updateOne({eventKey},{$set:{emailStatus:'sent',sentAt:new Date()}});
-  } catch (err) {
-    console.error('Appointment email failed:',err.message);
-    await db.collection('appointmentNotifications').updateOne({eventKey},{$set:{emailStatus:'failed',nextEmailAttemptAt:new Date(Date.now()+60000)},$inc:{emailAttempts:1}});
-  }
+  // Notification is persisted before returning. SMTP must not hold up booking responses.
+  // A pending notification is recoverable by the reminder worker after a restart.
+  void (async () => {
+    try {
+      await sendAppointmentEmail(a.customerEmail,title,message,a);
+      await db.collection('appointmentNotifications').updateOne({eventKey},{$set:{emailStatus:'sent',sentAt:new Date()}});
+    } catch (err) {
+      console.error('Appointment email failed:',err.message);
+      try {
+        await db.collection('appointmentNotifications').updateOne({eventKey},{$set:{emailStatus:'failed',nextEmailAttemptAt:new Date(Date.now()+60000)},$inc:{emailAttempts:1}});
+      } catch (updateError) { console.error('Appointment email status update failed:',updateError.message); }
+    }
+  })();
 }
 
 // Live appointment queue detail; only the owner can access it. No fabricated
