@@ -79,6 +79,23 @@ for (const [name, target] of Object.entries(legacyScripts)) {
 for (const oldPage of ["login", "verify", "forgot-password", "admin", "cashier", "dashboard", "display"]) {
   app.get(`/${oldPage}.html`, (req, res) => res.sendFile(path.join(__dirname, "..", "frontend", "index.html")));
 }
+// New uploads live in MongoDB so images survive Render restarts and redeploys.
+// Old filesystem uploads remain supported by the static fallback below.
+app.get("/uploads/barbers/:filename", async (req, res, next) => {
+  const filename = req.params.filename;
+  if (!/^[a-f0-9-]{36}\.(?:jpg|png|webp)$/.test(filename)) return res.sendStatus(404);
+  try {
+    const photo = await req.app.locals.db.collection("barberPhotos").findOne({ _id: filename });
+    if (!photo) return next();
+    const contentType = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" }[filename.split(".").pop()];
+    res.set("Content-Type", contentType);
+    res.set("Cache-Control", "public, max-age=86400");
+    res.set("X-Content-Type-Options", "nosniff");
+    return res.send(Buffer.from(photo.data.buffer || photo.data));
+  } catch (error) {
+    return next(error);
+  }
+});
 // Uploaded barber photos are public images, not executable content.
 app.use("/uploads/barbers", express.static(path.join(__dirname, "uploads", "barbers"), { index: false, dotfiles: "deny", immutable: false }));
 // Browser-ready Chart.js is installed in backend/node_modules. Only expose this single asset.

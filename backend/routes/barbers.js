@@ -39,16 +39,26 @@ function parsePhoto(data) {
   if (!valid) throw new Error("The selected image file is not valid.");
   return { binary, ext };
 }
-async function savePhoto(data) {
+// Persist new photos in MongoDB rather than Render's ephemeral filesystem.
+// Keep the existing public URL format for all frontend barber cards.
+async function savePhoto(db, data) {
   const { binary, ext } = parsePhoto(data);
-  await fs.mkdir(PHOTO_DIR, { recursive: true });
   const filename = `${randomUUID()}.${ext}`;
-  await fs.writeFile(path.join(PHOTO_DIR, filename), binary, { flag: "wx", mode: 0o644 });
+  const contentType = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+  await db.collection("barberPhotos").insertOne({
+    _id: filename,
+    data: binary,
+    contentType,
+    createdAt: new Date()
+  });
   return `/uploads/barbers/${filename}`;
 }
-async function deleteOwnedPhoto(url) {
+async function deleteOwnedPhoto(db, url) {
   const name = /^\/uploads\/barbers\/([a-f0-9-]{36}\.(?:jpg|png|webp))$/.exec(String(url || ""))?.[1];
-  if (name) await fs.unlink(path.join(PHOTO_DIR, name)).catch(() => {});
+  if (!name) return;
+  await db.collection("barberPhotos").deleteOne({ _id: name });
+  // Support cleanup of photos uploaded before the MongoDB-backed change.
+  await fs.unlink(path.join(PHOTO_DIR, name)).catch(() => {});
 }
 
 // status: "available" (on duty and free), "busy" (serving someone) or "unavailable" (off duty).
@@ -121,7 +131,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
   let newPhoto = "";
   try {
     if (req.body.photoData !== undefined) {
-      try { newPhoto = await savePhoto(req.body.photoData); }
+      try { newPhoto = await savePhoto(req.app.locals.db, req.body.photoData); }
       catch (e) { return res.status(400).json({ error: e.message }); }
       value.photoUrl = newPhoto;
     }
@@ -134,7 +144,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
 
     res.status(201).json({ id: String(result.insertedId), ...value });
   } catch (err) {
-    await deleteOwnedPhoto(newPhoto);
+    await deleteOwnedPhoto(req.app.locals.db, newPhoto);
     if (err.code === 11000) return res.status(409).json({ error: "A barber with this name already exists (it may be removed — restore it instead)." });
     throw err;
   }
@@ -161,19 +171,19 @@ router.patch("/:id", requireAuth, requireRole("admin"), async (req, res) => {
       return res.status(409).json({ error: "Maximum of 3 active barbers reached. Archive a barber first." });
     }
     if (req.body.photoData !== undefined) {
-      try { newPhoto = await savePhoto(req.body.photoData); }
+      try { newPhoto = await savePhoto(req.app.locals.db, req.body.photoData); }
       catch (e) { return res.status(400).json({ error: e.message }); }
       value.photoUrl = newPhoto;
     } else if (req.body.photoUrl === undefined) {
       value.photoUrl = old.photoUrl || "";
     }
     const result = await collection.updateOne({ _id: id }, { $set: value });
-    if (!result.matchedCount) { await deleteOwnedPhoto(newPhoto); return res.status(404).json({ error: "Barber not found." }); }
-    if (newPhoto) await deleteOwnedPhoto(old.photoUrl);
+    if (!result.matchedCount) { await deleteOwnedPhoto(req.app.locals.db, newPhoto); return res.status(404).json({ error: "Barber not found." }); }
+    if (newPhoto) await deleteOwnedPhoto(req.app.locals.db, old.photoUrl);
     if (value.active) await audit(req, "barber.restored", { barber: value.name });
     res.json({ message: "Barber updated." });
   } catch (err) {
-    await deleteOwnedPhoto(newPhoto);
+    await deleteOwnedPhoto(req.app.locals.db, newPhoto);
     if (err.code === 11000) return res.status(409).json({ error: "A barber with this name already exists." });
     throw err;
   }
