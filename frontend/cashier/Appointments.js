@@ -55,6 +55,14 @@
       .cashier-visits-style .cashier-appointment-action{white-space:nowrap}
 
       .cashier-visits-style .cashier-appointment-action:disabled{cursor:not-allowed;opacity:.5}
+      /* Visible explanation for unavailable check-in, including on touch screens. */
+      .cashier-visits-style .cashier-checkin-control{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;max-width:148px}
+      .cashier-visits-style .cashier-checkin-reason{display:flex;align-items:flex-start;justify-content:center;gap:5px;width:100%;padding:6px 8px;border:1px solid #ecdcc6;border-radius:8px;background:#faf4eb;color:#865d32;font-size:11px;font-weight:600;line-height:1.35;white-space:normal;text-align:left}
+      .cashier-visits-style .cashier-checkin-reason.is-closed{background:#f8eeee;border-color:#efdad8;color:#9a4a41}
+      .cashier-visits-style .cashier-checkin-reason svg{flex:none;width:13px;height:13px;margin-top:1px}
+      .cashier-visits-style .cashier-checkin-control .cashier-appointment-action{margin:0}
+      @media(max-width:600px){.cashier-visits-style .cashier-checkin-reason{font-size:10px;padding:5px 6px}}
+
 
       .cashier-visits-style .cashier-ops-data th,.cashier-visits-style .cashier-ops-data td{vertical-align:middle}
 
@@ -247,13 +255,21 @@
 
         const id = escapeHTML(a.id);
 
-        const checkinAllowed = a.status === 'confirmed' && now >= new Date(a.startsAt).getTime() - 10 * 60000 && now <= new Date(a.startsAt).getTime() + 60 * 60000;
+        const startsAt = new Date(a.startsAt).getTime();
+        const checkinOpens = startsAt - 10 * 60000;
+        const checkinCloses = startsAt + 60 * 60000;
+        const checkinAllowed = a.status === 'confirmed' && now >= checkinOpens && now <= checkinCloses;
+        const isTooEarly = now < checkinOpens;
+        const checkinReason = isTooEarly
+          ? `Opens ${when(checkinOpens)}`
+          : 'Check-in window closed';
+        const checkinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 
         const primary = a.status === 'pending'
 
           ? `<button class="primary-btn small cashier-appointment-action" data-book-status="confirmed" data-id="${id}">Approve</button>`
 
-          : a.status === 'confirmed' ? `<button class="primary-btn small cashier-appointment-action" data-book-checkin="${id}" ${checkinAllowed ? '' : 'disabled title="Check-in is available from 10 minutes before to 60 minutes after the appointment."'}>Check In</button>` : '';
+          : a.status === 'confirmed' ? `<div class="cashier-checkin-control"><button class="primary-btn small cashier-appointment-action" data-book-checkin="${id}" ${checkinAllowed ? '' : `disabled aria-describedby="checkin-reason-${id}" title="${escapeHTML(checkinReason)}"`}>Check In</button>${checkinAllowed ? '' : `<span class="cashier-checkin-reason${isTooEarly ? '' : ' is-closed'}" id="checkin-reason-${id}" role="note" title="${escapeHTML(isTooEarly ? `Check-in opens 10 minutes before your appointment: ${when(checkinOpens)}` : `Check-in closed 60 minutes after your appointment: ${when(checkinCloses)}`)}">${checkinIcon}<span>${escapeHTML(checkinReason)}</span></span>`}</div>` : '';
 
         const menu = ['confirmed', 'pending'].includes(a.status) ? `<details class="cashier-appointment-more"><summary aria-label="More actions for ${escapeHTML(a.customerName)}" title="More actions">⋯</summary><div class="cashier-appointment-menu">${a.status === 'confirmed' && new Date(a.startsAt).getTime() <= now ? `<button type="button" data-book-status="no-show" data-id="${id}">Mark No-show</button>` : ''}<button type="button" data-book-cancel="${id}">Cancel Appointment</button></div></details>` : '';
 
