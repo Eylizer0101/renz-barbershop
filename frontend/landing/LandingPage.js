@@ -20,6 +20,7 @@
     const menu = document.createElement("div");
     menu.id = "landingMobileNavigation";
     menu.className = "landing-mobile-navigation";
+    menu.hidden = true;
     menu.setAttribute("inert", "");
     const navCopy = landingNav.cloneNode(true);
     navCopy.setAttribute("aria-label", "Mobile navigation");
@@ -28,6 +29,7 @@
     landingHeader.append(toggle, menu);
     function setLandingOpen(open) {
       landingHeader.classList.toggle("landing-menu-open", open);
+      menu.hidden = !open;
       toggle.setAttribute("aria-expanded", String(open));
       toggle.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
       toggle.innerHTML = open
@@ -35,7 +37,11 @@
         : '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
       if (open) menu.removeAttribute("inert"); else menu.setAttribute("inert", "");
     }
-    toggle.addEventListener("click", () => setLandingOpen(!landingHeader.classList.contains("landing-menu-open")));
+    toggle.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setLandingOpen(toggle.getAttribute("aria-expanded") !== "true");
+    });
     menu.addEventListener("click", event => { if (event.target.closest("a")) setLandingOpen(false); });
     document.addEventListener("keydown", event => { if (event.key === "Escape") setLandingOpen(false); });
     document.addEventListener("click", event => { if (!landingHeader.contains(event.target)) setLandingOpen(false); });
