@@ -46,10 +46,19 @@ const app = express();
 // Behind a hosting proxy (Render, Nginx, ...) set TRUST_PROXY=1 so rate limits see each visitor's real address.
 if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 
-// Security headers. Barber photos may come from any https address.
+// Security headers. Keep scripts/API calls same-origin; allow HTTPS haircut photos
+// and inline styles already used by the existing UI, without allowing inline scripts.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
+      "base-uri": ["'self'"],
+      "object-src": ["'none'"],
+      "frame-ancestors": ["'none'"],
+      "frame-src": ["'none'"],
+      "script-src": ["'self'"],
+      "script-src-attr": ["'none'"],
+      "connect-src": ["'self'"],
+      "form-action": ["'self'"],
       "img-src": ["'self'", "data:", "https:"],
       ...(production ? {} : { "upgrade-insecure-requests": null })
     }
