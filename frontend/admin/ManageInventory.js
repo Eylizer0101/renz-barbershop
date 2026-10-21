@@ -14,10 +14,10 @@
       </div>`;
     body.innerHTML = `
       <section class="inventory-stats" aria-label="Inventory summary">
-        <article class="inventory-stat"><span>Total Products</span><strong id="invTotal">0</strong><small>Active products</small></article>
-        <article class="inventory-stat"><span>In Stock</span><strong id="invAvailable">0</strong><small>Healthy stock levels</small></article>
-        <article class="inventory-stat inventory-stat-warning"><span>Low Stock</span><strong id="invLow">0</strong><small>Restock recommended</small></article>
-        <article class="inventory-stat inventory-stat-danger"><span>Out of Stock</span><strong id="invOut">0</strong><small>Needs attention</small></article>
+        <article class="inventory-stat"><img class="inventory-stat-image" src="/images/Inventory%20Management/Total_Products.png" alt="" aria-hidden="true" loading="lazy" decoding="async"><strong id="invTotal">0</strong><span>Total Products</span></article>
+        <article class="inventory-stat"><img class="inventory-stat-image" src="/images/Inventory%20Management/In_Stock.png" alt="" aria-hidden="true" loading="lazy" decoding="async"><strong id="invAvailable">0</strong><span>In Stock</span></article>
+        <article class="inventory-stat inventory-stat-warning"><img class="inventory-stat-image" src="/images/Inventory%20Management/Low_Stock.png" alt="" aria-hidden="true" loading="lazy" decoding="async"><strong id="invLow">0</strong><span>Low Stock</span></article>
+        <article class="inventory-stat inventory-stat-danger"><img class="inventory-stat-image" src="/images/Inventory%20Management/Out_Stock.png" alt="" aria-hidden="true" loading="lazy" decoding="async"><strong id="invOut">0</strong><span>Out of Stock</span></article>
       </section>
       <section class="card inventory-filter-card" aria-label="Filter inventory">
         <label class="inventory-search-field"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input type="search" id="invSearch" placeholder="Search product or supplier..." aria-label="Search products"></label>
