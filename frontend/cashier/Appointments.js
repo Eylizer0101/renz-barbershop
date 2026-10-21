@@ -55,14 +55,18 @@
       .cashier-visits-style .cashier-appointment-action{white-space:nowrap}
 
       .cashier-visits-style .cashier-appointment-action:disabled{cursor:not-allowed;opacity:.5}
-      /* Visible explanation for unavailable check-in, including on touch screens. */
-      .cashier-visits-style .cashier-checkin-control{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:90px;max-width:148px}
-      .cashier-visits-style .cashier-checkin-reason{display:flex;align-items:flex-start;justify-content:center;gap:5px;width:100%;padding:6px 8px;border:1px solid #ecdcc6;border-radius:8px;background:#faf4eb;color:#865d32;font-size:11px;font-weight:600;line-height:1.35;white-space:normal;text-align:left}
-      .cashier-visits-style .cashier-checkin-reason.is-closed{background:#f8eeee;border-color:#efdad8;color:#9a4a41}
-      .cashier-visits-style .cashier-checkin-reason svg{flex:none;width:13px;height:13px;margin-top:1px}
-      .cashier-visits-style .cashier-checkin-control .cashier-appointment-action{margin:0}
-      @media(max-width:600px){.cashier-visits-style .cashier-checkin-reason{font-size:10px;padding:5px 6px}}
-
+      /* Explain unavailable check-in in a dialog without allowing the action. */
+      .cashier-visits-style .cashier-appointment-action[aria-disabled="true"]{cursor:help;opacity:.55}
+      .cashier-visits-style .cashier-appointment-action[aria-disabled="true"]:hover{filter:none}
+      .dialog-backdrop .dialog:has(> .cashier-checkin-modal){box-sizing:border-box;width:min(420px,calc(100vw - 32px));max-width:420px;padding:0;overflow:hidden;border-radius:18px;background:#fff;box-shadow:0 24px 65px #0003}
+      .cashier-checkin-modal{padding:28px;text-align:center;color:#3f2d20}
+      .cashier-checkin-modal-icon{width:60px;height:60px;margin:0 auto 17px;display:grid;place-items:center;border-radius:18px;background:#faf0df;color:#9b6a30}
+      .cashier-checkin-modal-icon.is-closed{background:#faebeb;color:#a7463d}
+      .cashier-checkin-modal-icon svg{width:31px;height:31px}
+      .cashier-checkin-modal h2{font-size:21px;margin:0 0 10px;color:#34271e}
+      .cashier-checkin-modal p{margin:0;color:#766554;line-height:1.65;font-size:14px}
+      .cashier-checkin-modal-schedule{margin:17px 0 22px;padding:12px;background:#faf7f2;border:1px solid #eee4d6;border-radius:11px;font-size:13px;line-height:1.6;color:#695039}
+      .cashier-checkin-modal .primary-btn{margin:0;width:100%;border-radius:10px}
 
       .cashier-visits-style .cashier-ops-data th,.cashier-visits-style .cashier-ops-data td{vertical-align:middle}
 
@@ -131,6 +135,25 @@
   }
 
 
+
+  function showCheckinNotice(a) {
+    const start = new Date(a.startsAt).getTime();
+    const openAt = start - 10 * 60000;
+    const closeAt = start + 60 * 60000;
+    const tooEarly = Date.now() < openAt;
+    const message = tooEarly
+      ? `This appointment is not ready for check-in yet. Check-in will be available on ${when(openAt)}.`
+      : `The check-in window for this appointment has closed. Check-in was available until ${when(closeAt)}.`;
+    const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    App.openDialog(`
+      <div class="cashier-checkin-modal">
+        <div class="cashier-checkin-modal-icon${tooEarly ? '' : ' is-closed'}">${icon}</div>
+        <h2>${tooEarly ? 'Check-in is not available yet' : 'Check-in window closed'}</h2>
+        <p>${escapeHTML(message)}</p>
+        <div class="cashier-checkin-modal-schedule"><strong>${escapeHTML(a.customerName || 'Customer')}</strong><br>Appointment: ${escapeHTML(when(a.startsAt))}</div>
+        <button class="primary-btn" type="button" data-close>Okay</button>
+      </div>`);
+  }
 
   function viewDetails(a) {
 
@@ -263,13 +286,11 @@
         const checkinReason = isTooEarly
           ? `Opens ${when(checkinOpens)}`
           : 'Check-in window closed';
-        const checkinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-
         const primary = a.status === 'pending'
-
           ? `<button class="primary-btn small cashier-appointment-action" data-book-status="confirmed" data-id="${id}">Approve</button>`
-
-          : a.status === 'confirmed' ? `<div class="cashier-checkin-control"><button class="primary-btn small cashier-appointment-action" data-book-checkin="${id}" ${checkinAllowed ? '' : `disabled aria-describedby="checkin-reason-${id}" title="${escapeHTML(checkinReason)}"`}>Check In</button>${checkinAllowed ? '' : `<span class="cashier-checkin-reason${isTooEarly ? '' : ' is-closed'}" id="checkin-reason-${id}" role="note" title="${escapeHTML(isTooEarly ? `Check-in opens 10 minutes before your appointment: ${when(checkinOpens)}` : `Check-in closed 60 minutes after your appointment: ${when(checkinCloses)}`)}">${checkinIcon}<span>${escapeHTML(checkinReason)}</span></span>`}</div>` : '';
+          : a.status === 'confirmed'
+            ? `<button class="primary-btn small cashier-appointment-action" data-book-checkin="${id}" ${checkinAllowed ? '' : 'aria-disabled="true" title="Click to see why check-in is unavailable"'}>Check In</button>`
+            : '';
 
         const menu = ['confirmed', 'pending'].includes(a.status) ? `<details class="cashier-appointment-more"><summary aria-label="More actions for ${escapeHTML(a.customerName)}" title="More actions">⋯</summary><div class="cashier-appointment-menu">${a.status === 'confirmed' && new Date(a.startsAt).getTime() <= now ? `<button type="button" data-book-status="no-show" data-id="${id}">Mark No-show</button>` : ''}<button type="button" data-book-cancel="${id}">Cancel Appointment</button></div></details>` : '';
 
@@ -342,6 +363,16 @@
       const isCheckin = !!btn.dataset.bookCheckin;
 
       const isNoShow = btn.dataset.bookStatus === 'no-show';
+
+      // Keep the unavailable button focusable so users can read the reason.
+      // Never send a check-in request outside the permitted time window.
+      if (isCheckin) {
+        const startsAt = new Date(a.startsAt).getTime();
+        if (a.status !== 'confirmed' || Date.now() < startsAt - 10 * 60000 || Date.now() > startsAt + 60 * 60000) {
+          showCheckinNotice(a);
+          return;
+        }
+      }
 
       const confirmed = await App.confirmDialog(
 
