@@ -28,8 +28,8 @@ const registerLimiter = limiter(10, "Too many sign-ups from this device. Try aga
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const MAX_CODE_RESENDS = 3;
-const MAX_FAILED_LOGINS = 5;
-const LOCK_MS = 15 * 60 * 1000;
+const MAX_FAILED_LOGINS = 3;
+const LOCK_MS = 180 * 1000;
 
 const expired = { error: "Your sign-in has expired. Please log in again." };
 
@@ -41,24 +41,33 @@ function newCode() {
   return crypto.randomInt(0, 1000000).toString().padStart(6, "0");
 }
 
-// Wrong passwords and wrong codes both count. After 5 in a row the account is
-// locked for 15 minutes (except on a device the admin has already verified).
+// Track consecutive wrong passwords/codes in MongoDB, shared across browsers and reloads.
+// Atomic updates prevent simultaneous failures from bypassing the three-attempt limit.
 async function recordFailure(db, user) {
-  const updated = await db.collection("users").findOneAndUpdate(
-    { _id: user._id },
+  const users = db.collection("users");
+  const now = new Date();
+  const updated = await users.findOneAndUpdate(
+    { _id: user._id, $or: [{ lockedUntil: { $exists: false } }, { lockedUntil: { $lte: now } }] },
     { $inc: { failedLogins: 1 } },
     { returnDocument: "after" }
   );
-
-  if (updated && updated.failedLogins >= MAX_FAILED_LOGINS) {
-    await db.collection("users").updateOne(
-      { _id: user._id },
-      { $set: { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) } }
-    );
-    return true;
+  if (!updated) {
+    const current = await users.findOne({ _id: user._id });
+    return { lockedUntil: current?.lockedUntil || null, attempts: current?.failedLogins || 0 };
   }
-
-  return false;
+  if (updated.failedLogins >= MAX_FAILED_LOGINS) {
+    const lockedUntil = new Date(Date.now() + LOCK_MS);
+    const locked = await users.findOneAndUpdate(
+      { _id: user._id, failedLogins: { $gte: MAX_FAILED_LOGINS },
+        $or: [{ lockedUntil: { $exists: false } }, { lockedUntil: { $lte: now } }] },
+      { $set: { failedLogins: 0, lockedUntil } },
+      { returnDocument: "after" }
+    );
+    if (locked) return { lockedUntil: locked.lockedUntil, attempts: MAX_FAILED_LOGINS };
+    const current = await users.findOne({ _id: user._id });
+    return { lockedUntil: current?.lockedUntil || null, attempts: current?.failedLogins || 0 };
+  }
+  return { lockedUntil: null, attempts: updated.failedLogins };
 }
 
 async function clearFailures(db, user) {
@@ -68,9 +77,22 @@ async function clearFailures(db, user) {
 }
 
 function lockedMessage(user) {
-  const minutes = Math.max(1, Math.ceil((user.lockedUntil - Date.now()) / 60000));
-  return { error: `Too many failed attempts. This account is locked for ${minutes} more minute(s).` };
+  const lockedUntil = new Date(user.lockedUntil).getTime();
+  return { error: "Too many failed attempts. Your account is temporarily locked.",
+    code: "ACCOUNT_LOCKED", lockedUntil: new Date(lockedUntil).toISOString(),
+    retryAfterSeconds: Math.max(1, Math.ceil((lockedUntil - Date.now()) / 1000)) };
 }
+
+// Used only to restore the locked modal. Never expose account existence or attempt counts here.
+router.post("/login-lock-status", loginLimiter, async (req, res) => {
+  const email = cleanText(req.body?.email, 254).toLowerCase();
+  if (!validEmail(email)) return res.json({ locked: false });
+  const user = await req.app.locals.db.collection("users").findOne(
+    { email, active: { $ne: false } }, { projection: { lockedUntil: 1 } }
+  );
+  if (user?.lockedUntil > new Date()) return res.json({ locked: true, ...lockedMessage(user) });
+  return res.json({ locked: false });
+});
 
 async function finishLogin(req, res, user, how) {
   await clearFailures(req.app.locals.db, user);
@@ -100,10 +122,12 @@ router.post("/login", loginLimiter, async (req, res) => {
   const passwordOk = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
 
   if (!user || !passwordOk) {
-    const locked = user ? await recordFailure(db, user) : false;
-    await audit(req, "login.failed", { email, locked });
-    if (locked) return res.status(429).json(lockedMessage({ lockedUntil: Date.now() + LOCK_MS }));
-    return res.status(401).json({ error: "Invalid email or password." });
+    const failure = user ? await recordFailure(db, user) : null;
+    await audit(req, "login.failed", { email, locked: Boolean(failure?.lockedUntil) });
+    if (failure?.lockedUntil > new Date()) return res.status(429).json(lockedMessage(failure));
+    return res.status(401).json({ error: "Invalid email or password.",
+      ...(user ? { attemptsRemaining: Math.max(0, MAX_FAILED_LOGINS - (failure?.attempts || 0)),
+        attempt: failure?.attempts || 1, maxAttempts: MAX_FAILED_LOGINS } : {}) });
   }
 
   // Clear any pending code from a previous admin login attempt.
@@ -135,9 +159,10 @@ router.post("/verify-2fa", codeLimiter, async (req, res) => {
   if (user.lockedUntil > new Date()) return res.status(429).json(lockedMessage(user));
 
   if (!/^\d{6}$/.test(code) || hashCode(code) !== challenge.codeHash) {
-    const locked = await recordFailure(db, user);
-    await audit(req, "login.code-failed", { email: user.email, locked });
-    return res.status(401).json({ error: locked ? lockedMessage({ lockedUntil: Date.now() + LOCK_MS }).error : "Incorrect verification code." });
+    const failure = await recordFailure(db, user);
+    await audit(req, "login.code-failed", { email: user.email, locked: Boolean(failure.lockedUntil) });
+    if (failure.lockedUntil > new Date()) return res.status(429).json(lockedMessage(failure));
+    return res.status(401).json({ error: "Incorrect verification code." });
   }
 
   await db.collection("loginChallenges").deleteOne({ _id: challengeId });

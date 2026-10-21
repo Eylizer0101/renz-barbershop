@@ -494,3 +494,21 @@ body.forgot-password-page .login-back-link { z-index: 3; }
   body.forgot-password-page .login-content { padding: 26px 22px; }
   body.forgot-password-page .login-back-link { top: 12px; left: 12px; }
 }
+
+/* Server-backed account lockout: shared across Customer and Staff login tabs. */
+.login-lock-overlay[hidden] { display: none !important; }
+.login-lock-overlay {
+  position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.42);
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+}
+body.login-is-locked { overflow: hidden; }
+.login-lock-dialog {
+  width: min(100%, 430px); padding: 28px 32px 30px; border-radius: 17px;
+  background: white; box-shadow: 0 16px 55px rgba(0,0,0,.24);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.login-lock-icon { width: 88px; height: 88px; object-fit: contain; margin: 0 0 12px; }
+.login-lock-dialog h2 { font: 700 25px/1.3 Arial,sans-serif; margin: 0 0 10px; color: #171b27; }
+.login-lock-dialog p { margin: 0; color: #596273; line-height: 1.5; font-size: 15px; }
+.login-lock-dialog .login-lock-countdown { margin-top: 18px; color: #db2424; font-weight: 700; }
+@media(max-width:480px){.login-lock-dialog{padding:24px 18px}.login-lock-icon{width:76px;height:76px}}

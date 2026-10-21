@@ -59,9 +59,74 @@ function initializeAuthPage() {
       body: JSON.stringify(body)
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Something went wrong.");
+    if (!response.ok) {
+      const error = new Error(data.error || "Something went wrong.");
+      error.data = data;
+      throw error;
+    }
     return data;
   }
+
+  // The server owns the lock expiration; browser storage is only a pointer so we
+  // can restore the modal after navigating away or reopening the login page.
+  const LOCK_EMAIL_KEY = "renzLockedLoginEmail";
+  const lockOverlay = document.createElement("div");
+  lockOverlay.className = "login-lock-overlay";
+  lockOverlay.hidden = true;
+  lockOverlay.innerHTML = `<section class="login-lock-dialog" role="alertdialog" aria-modal="true" aria-labelledby="loginLockHeading" aria-describedby="loginLockDescription">
+    <img src="/images/Lock.png" alt="" class="login-lock-icon" onerror="this.style.display='none'">
+    <h2 id="loginLockHeading">Account Locked</h2>
+    <p id="loginLockDescription">Too many failed attempts. Please wait before trying again.</p>
+    <p class="login-lock-countdown" role="timer">Time remaining: <strong id="loginLockSeconds">180 seconds</strong></p>
+  </section>`;
+  document.body.appendChild(lockOverlay);
+  let lockUntil = 0;
+  let lockInterval = null;
+  let checkingLock = false;
+  function clearLock() {
+    lockUntil = 0;
+    if (lockInterval) clearInterval(lockInterval);
+    lockInterval = null;
+    lockOverlay.hidden = true;
+    document.body.classList.remove("login-is-locked");
+    try { localStorage.removeItem(LOCK_EMAIL_KEY); } catch (_) { /* Storage may be disabled. */ }
+  }
+  function renderLockTimer() {
+    const seconds = Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+    if (!seconds) { clearLock(); return; }
+    $("loginLockSeconds").textContent = `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+  }
+  function showLock(email, until) {
+    const expires = new Date(until).getTime();
+    if (!Number.isFinite(expires) || expires <= Date.now()) return;
+    lockUntil = expires;
+    try { localStorage.setItem(LOCK_EMAIL_KEY, email.trim().toLowerCase()); } catch (_) { /* Storage may be disabled. */ }
+    lockOverlay.hidden = false;
+    document.body.classList.add("login-is-locked");
+    renderLockTimer();
+    if (lockInterval) clearInterval(lockInterval);
+    lockInterval = setInterval(renderLockTimer, 1000);
+  }
+  async function checkLock(email) {
+    if (!email || checkingLock) return;
+    checkingLock = true;
+    try {
+      const response = await fetch("/api/auth/login-lock-status", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        credentials: "same-origin", body: JSON.stringify({ email })
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.locked && data.lockedUntil) showLock(email, data.lockedUntil);
+      else if (!lockOverlay.hidden) clearLock();
+      else { try { localStorage.removeItem(LOCK_EMAIL_KEY); } catch (_) {} }
+    } catch (_) { /* A failed network request must not invent a lock state. */ }
+    finally { checkingLock = false; }
+  }
+  try {
+    const savedEmail = localStorage.getItem(LOCK_EMAIL_KEY);
+    if (savedEmail) checkLock(savedEmail);
+  } catch (_) { /* Storage may be disabled. */ }
 
   // Disables the form's button while a request runs.
   function handle(form, action) {
@@ -74,7 +139,12 @@ function initializeAuthPage() {
       try {
         await action();
       } catch (error) {
-        showMessage(error.message || "Unable to continue.");
+        if (error.data?.code === "ACCOUNT_LOCKED" && error.data.lockedUntil) {
+          const email = form.id === "staffForm" ? $("staffEmail").value : $("customerEmail")?.value;
+          showLock(email || "", error.data.lockedUntil);
+        } else if (typeof error.data?.attempt === "number") {
+          showMessage(`The email or password you entered is incorrect. Attempt ${error.data.attempt} of ${error.data.maxAttempts}.`);
+        } else showMessage(error.message || "Unable to continue.");
       } finally {
         button.disabled = false;
       }
