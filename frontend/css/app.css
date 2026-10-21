@@ -4094,7 +4094,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .inventory-table td{padding:14px 11px;height:74px;vertical-align:middle}
 .inventory-table td:first-child{font-weight:700}.inventory-table td:last-child,.inventory-table th:last-child{text-align:center}
 .inventory-product-name{min-width:155px}.inventory-product-name strong{display:block;font-size:14px;white-space:normal}
-.inventory-product-name small{display:block;color:#8c8175;font-size:11px;margin-top:5px;white-space:nowrap}
+.inventory-product-name small{display:block;color:#8c8175;font-size:13px;margin-top:5px;white-space:nowrap}
 .inventory-stock-tag{display:inline-block;padding:7px 10px;border-radius:18px;white-space:nowrap;font-size:11px;font-weight:700;background:#e5f5eb;color:#207544}
 .inventory-stock-low{background:#fff0d8;color:#976012}.inventory-stock-out{background:#fee8e6;color:#b63a32}
 .inventory-action-group{display:inline-flex;gap:6px;align-items:center;justify-content:center;white-space:nowrap}
