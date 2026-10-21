@@ -805,6 +805,21 @@
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit" }).format(date);
   };
+  // Use the saved visit photo when available, otherwise match the service's current photo.
+  function visitServicePhoto(visit, availableServices) {
+    const names = String(visit.service || "").trim().toLocaleLowerCase();
+    const services = Array.isArray(availableServices) ? availableServices : state.services;
+    const service = services.find(s => String(s.id) === String(visit.serviceId || ""))
+      || services.find(s => String(s.name || "").trim().toLocaleLowerCase() === names);
+    return App.safePhoto(visit.imageUrl || service?.imageUrl || "");
+  }
+  function visitServiceCell(visit, availableServices) {
+    const photo = visitServicePhoto(visit, availableServices);
+    return `<span class="customer-visit-service">${photo
+      ? `<img class="customer-visit-service-photo" src="${escapeHTML(photo)}" alt="" loading="lazy" decoding="async">`
+      : '<span class="customer-visit-service-photo customer-visit-service-placeholder" aria-hidden="true">✂</span>'}
+      <span class="customer-visit-service-name">${escapeHTML(visit.service || "—")}</span></span>`;
+  }
   function visitDetails(visit) {
     App.openDialog(`<div class="customer-visit-dialog"><span class="eyebrow">VISIT INFORMATION</span><h2>Visit Details</h2>
       <div class="customer-visit-dialog-status">${statusPill(visit.status)}</div>
@@ -831,12 +846,16 @@
     if (visitFilters.from) params.set("from", visitFilters.from);
     if (visitFilters.to) params.set("to", visitFilters.to);
     try {
-      const result = await api(`/api/queue/history?${params}`);
+      // Fetch active service photos alongside history; a failed photo lookup must not block visits.
+      const [result, availableServices] = await Promise.all([
+        api(`/api/queue/history?${params}`),
+        api("/api/services").catch(() => state.services)
+      ]);
       if (version !== visitLoadVersion || !box.isConnected) return;
       const visits = result.visits || [];
       const total = Number(result.total) || 0;
       const pages = Math.max(1, Number(result.totalPages) || 1);
-      box.querySelector("[data-visits-results]").innerHTML = visits.length ? `<div class="customer-visits-table-scroll"><table class="data-table customer-visits-table"><thead><tr><th>Date &amp; Time</th><th>Service</th><th>Barber</th><th>Status</th><th>Amount Paid</th><th>Actions</th></tr></thead><tbody>${visits.map((v, i) => `<tr><td><strong>${escapeHTML(v.queueDate || "—")}</strong><small>${escapeHTML(visitTime(v.createdAt))}</small></td><td>${escapeHTML(v.service || "—")}</td><td>${escapeHTML(v.barberName || "—")}</td><td>${statusPill(v.status)}</td><td>${v.amountPaid != null ? money(v.amountPaid) : "—"}</td><td><button type="button" class="customer-visit-details-btn" data-visit-index="${i}" aria-label="View details for ${escapeHTML(v.service || "visit")}">View Details</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="customer-visits-message"><h2>${total ? "No visits on this page" : "No matching visits"}</h2><p>${total ? "Choose another page." : "Try adjusting your search or filters."}</p></div>`;
+      box.querySelector("[data-visits-results]").innerHTML = visits.length ? `<div class="customer-visits-table-scroll"><table class="data-table customer-visits-table"><thead><tr><th>Date &amp; Time</th><th>Service</th><th>Barber</th><th>Status</th><th>Amount Paid</th><th>Actions</th></tr></thead><tbody>${visits.map((v, i) => `<tr><td><strong>${escapeHTML(v.queueDate || "—")}</strong><small>${escapeHTML(visitTime(v.createdAt))}</small></td><td>${visitServiceCell(v, availableServices)}</td><td>${escapeHTML(v.barberName || "—")}</td><td>${statusPill(v.status)}</td><td>${v.amountPaid != null ? money(v.amountPaid) : "—"}</td><td><button type="button" class="customer-visit-details-btn" data-visit-index="${i}" aria-label="View details for ${escapeHTML(v.service || "visit")}">View Details</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="customer-visits-message"><h2>${total ? "No visits on this page" : "No matching visits"}</h2><p>${total ? "Choose another page." : "Try adjusting your search or filters."}</p></div>`;
       box.querySelectorAll("[data-visit-index]").forEach(button => button.addEventListener("click", () => visitDetails(visits[Number(button.dataset.visitIndex)])));
       const pager = box.querySelector("[data-visits-pager]");
       pager.innerHTML = `<span>Showing ${total ? (visitFilters.page - 1) * (visitFilters.pageSize === "all" ? total : Number(visitFilters.pageSize)) + 1 : 0}–${total ? Math.min(total, visitFilters.page * (visitFilters.pageSize === "all" ? total : Number(visitFilters.pageSize))) : 0} of ${total} visits</span><div class="customer-visits-pager-actions"><button type="button" data-visit-page="prev" ${visitFilters.page <= 1 ? "disabled" : ""} aria-label="Previous page">‹</button><span>Page ${visitFilters.page} of ${pages}</span><button type="button" data-visit-page="next" ${visitFilters.page >= pages ? "disabled" : ""} aria-label="Next page">›</button></div>`;
