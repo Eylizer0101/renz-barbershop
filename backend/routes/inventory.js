@@ -1,10 +1,29 @@
 const express = require("express");
 const { ObjectId } = require("mongodb");
+const crypto = require("crypto");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { cleanText, positiveNumber } = require("../utils/validation");
 const { audit } = require("../utils/security");
 
 const router = express.Router();
+const imagePath = /^\/uploads\/inventory\/[a-f0-9-]+\.(?:jpg|png|webp)$/;
+const imageValue = value => typeof value === "string" && imagePath.test(value) ? value : "";
+
+// Images are stored as binary in MongoDB, not on Render's ephemeral filesystem.
+router.post("/images", requireAuth, requireRole("admin"), express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "2mb" }), async (req, res) => {
+  const data = req.body;
+  const mime = req.get("content-type")?.split(";")[0].trim().toLowerCase();
+  const extensions = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  if (!Buffer.isBuffer(data) || !data.length || data.length > 2 * 1024 * 1024 || !extensions[mime])
+    return res.status(400).json({ error: "Choose a JPG, PNG, or WebP image up to 2 MB." });
+  const jpeg = mime === "image/jpeg" && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
+  const png = mime === "image/png" && data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  const webp = mime === "image/webp" && data.toString("ascii",0,4) === "RIFF" && data.toString("ascii",8,12) === "WEBP";
+  if (!(jpeg || png || webp)) return res.status(400).json({ error: "Invalid product image format." });
+  const filename = `${crypto.randomUUID()}.${extensions[mime]}`;
+  await req.app.locals.db.collection("inventoryPhotos").insertOne({ _id: filename, data, contentType: mime, createdAt: new Date() });
+  res.status(201).json({ imageUrl: `/uploads/inventory/${filename}` });
+});
 
 router.get("/", requireAuth, requireRole("admin", "cashier"), async (req, res) => {
   const db = req.app.locals.db;
@@ -17,6 +36,7 @@ router.get("/", requireAuth, requireRole("admin", "cashier"), async (req, res) =
     active: i.active !== false,
     unitCost: Number(i.unitCost || 0),
     supplier: i.supplier || "",
+    imageUrl: imageValue(i.imageUrl),
     lowStock: i.quantity <= i.minimumStock
   })));
 });
@@ -31,6 +51,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
   const unit = cleanText(req.body.unit || 'pcs', 20);
   const unitCost = Number(req.body.unitCost ?? 0);
   const supplier = cleanText(req.body.supplier, 100);
+  const imageUrl = imageValue(req.body.imageUrl);
   if (!/^(pcs|g|ml|bottles|boxes|packs|jars|cans)$/.test(unit)) return res.status(400).json({error:'Choose a valid stock unit.'});
 
   if (name.length < 2) return res.status(400).json({ error: "Product name is required." });
@@ -40,7 +61,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
   if (!Number.isFinite(unitCost) || unitCost < 0) return res.status(400).json({ error: "Unit cost must be >= 0." });
 
   const doc = {
-    name, category, quantity, minimumStock, price, unit, unitCost, supplier, active: true,
+    name, category, quantity, minimumStock, price, unit, unitCost, supplier, imageUrl, active: true,
     createdAt: new Date(), updatedAt: new Date()
   };
   const result = await db.collection("inventory").insertOne(doc);
@@ -81,7 +102,7 @@ router.patch("/:id", requireAuth, requireRole("admin"), async (req, res) => {
 
   await db.collection("inventory").updateOne(
     { _id: id },
-    { $set: { name, category, quantity, minimumStock, price, unit, unitCost, supplier, updatedAt: new Date() } }
+    { $set: { name, category, quantity, minimumStock, price, unit, unitCost, supplier, ...(req.body.imageUrl !== undefined ? { imageUrl: imageValue(req.body.imageUrl) } : {}), updatedAt: new Date() } }
   );
 
   await db.collection("inventoryEvents").insertOne({

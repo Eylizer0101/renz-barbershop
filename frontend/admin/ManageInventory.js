@@ -3,17 +3,6 @@
   "use strict";
   const { api, escapeHTML, money, setMessage, openDialog, confirmDialog, toast, busy } = App;
   const { emptyRow } = Desk;
-  // Inventory's monthly chart is self-contained; AdminAnalytics only exports render().
-  function barChart(values, emptyMessage) {
-    const rows = Array.isArray(values) ? values : [];
-    const max = Math.max(0, ...rows.map(row => Number(row.count) || 0));
-    if (!max) return `<p class="muted small" style="padding:20px 0;text-align:center">${escapeHTML(emptyMessage)}</p>`;
-    return `<div class="bar-chart" role="img" aria-label="Monthly product sales">${rows.map(row => {
-      const count = Math.max(0, Number(row.count) || 0);
-      const height = Math.max(2, count / max * 100);
-      return `<div class="bar-col" title="${escapeHTML(row.label)}: ${count} sold"><span class="bar-value">${count}</span><div class="bar" style="height:${height}%"></div><span class="bar-label">${escapeHTML(row.label)}</span></div>`;
-    }).join("")}</div>`;
-  }
 
   // ---------- Inventory ----------
   async function inventory(body, actions) {
@@ -39,10 +28,9 @@
       </section>
       <article class="card inventory-table-card">
         <div class="inventory-table-heading"><div><h2 id="invTableTitle">Active Products</h2><p>Manage supplies, product details, availability and stock movements.</p></div><span id="invResultCount" aria-live="polite"></span></div>
-        <div class="table-wrap"><table class="data-table inventory-table"><thead><tr><th>No.</th><th>Product</th><th>Category</th><th>Stock</th><th>Unit</th><th>Min.</th><th>Unit Cost</th><th>Stock Value</th><th>Supplier</th><th>Status</th><th>Actions</th></tr></thead><tbody id="itemRows"></tbody></table></div>
+        <div class="table-wrap"><table class="data-table inventory-table"><thead><tr><th>No.</th><th>Product</th><th>Category</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="itemRows"></tbody></table></div>
         <div class="inventory-pagination"><span id="invSummary"></span><div><button type="button" class="secondary-btn small" id="invPrevious">Previous</button><span id="invPage"></span><button type="button" class="secondary-btn small" id="invNext">Next</button></div></div>
-      </article>
-      <article class="card spaced inventory-chart-card"><div class="card-heading"><h2>Products sold per month</h2><span class="muted">${new Date().getFullYear()}</span></div><div id="monthlyChart"></div></article>`;
+      </article>`;
 
     let list = [], currentTab = "active", page = 1;
     const pageSize = 10;
@@ -98,8 +86,8 @@
         const state = stockStatus(item);
         const actionsHTML = currentTab === "archived" ? iconButton("view", item, "View") + iconButton("restore", item, "Restore") :
           iconButton("view", item, "View") + iconButton("edit", item, "Edit") + `<button type="button" class="inventory-icon-btn" data-inv-more="${escapeHTML(item.id)}" title="More actions" aria-label="More actions for ${escapeHTML(item.name)}">${icon("more")}</button>`;
-        return `<tr><td>${start + idx + 1}</td><td class="inventory-product-name"><strong>${escapeHTML(item.name)}</strong><small>Selling price ${money(item.price)}</small></td><td>${escapeHTML(item.category || "—")}</td><td><strong>${Number(item.quantity)}</strong></td><td>${escapeHTML(item.unit || "pcs")}</td><td>${Number(item.minimumStock)}</td><td>${money(item.unitCost || 0)}</td><td><strong>${money((item.unitCost || 0) * item.quantity)}</strong></td><td>${escapeHTML(item.supplier || "—")}</td><td><span class="inventory-stock-tag inventory-stock-${state}">${item.active === false ? "Archived" : statusLabel(item)}</span></td><td class="row-actions"><span class="inventory-action-group">${actionsHTML}</span></td></tr>`;
-      }).join("") : emptyRow(11, "No matching products found.");
+        return `<tr><td>${start + idx + 1}</td><td class="inventory-product-name"><span class="inventory-product-display">${productPhoto(item)}<span><strong>${escapeHTML(item.name)}</strong><small>Selling price ${money(item.price)}</small></span></span></td><td>${escapeHTML(item.category || "—")}</td><td><strong>${Number(item.quantity)} ${escapeHTML(item.unit || "pcs")}</strong></td><td><span class="inventory-stock-tag inventory-stock-${state}">${item.active === false ? "Archived" : statusLabel(item)}</span></td><td class="row-actions"><span class="inventory-action-group">${actionsHTML}</span></td></tr>`;
+      }).join("") : emptyRow(6, "No matching products found.");
       $("invSummary").textContent = `Showing ${filtered.length ? start + 1 : 0}–${Math.min(start + pageSize, filtered.length)} of ${filtered.length}`;
       $("invPage").textContent = `Page ${page} of ${pages}`;
       $("invPrevious").disabled = page <= 1;
@@ -113,23 +101,19 @@
       category.innerHTML = '<option value="all">All Categories</option>' + categories.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
       category.value = categories.includes(selectedCategory) ? selectedCategory : "all";
       draw();
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      // A chart request failure must not hide the inventory table or its actions.
-      try {
-        const monthly = await api("/api/analytics/inventory-monthly");
-        $("monthlyChart").innerHTML = barChart((monthly.months || []).map(m => ({ label: months[m.month - 1], count: m.sold })), "No products sold this year yet.");
-      } catch (error) {
-        $("monthlyChart").innerHTML = `<p class="muted small" style="padding:20px 0;text-align:center">Monthly sales chart is unavailable right now.</p>`;
-        console.error("Inventory monthly chart:", error);
-      }
+
+    }
+    function productPhoto(item, large = false) {
+      const src = item.imageUrl && /^\/uploads\/inventory\/[a-f0-9-]+\.(jpg|png|webp)$/.test(item.imageUrl) ? item.imageUrl : "";
+      return src ? `<img class="inventory-product-photo${large ? " inventory-photo-large" : ""}" src="${escapeHTML(src)}" alt="${escapeHTML(item.name)}" loading="lazy">` : `<span class="inventory-product-placeholder${large ? " inventory-photo-large" : ""}" role="img" aria-label="No product photo"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="16" cy="8" r="2"/></svg></span>`;
     }
     function details(item) {
-      openDialog(`<div class="inventory-detail-dialog"><h2>Product Details</h2><h3>${escapeHTML(item.name)}</h3><dl>
+      openDialog(`<div class="inventory-detail-dialog"><h2>Product Details</h2><div class="inventory-detail-photo">${productPhoto(item, true)}</div><h3>${escapeHTML(item.name)}</h3><dl>
         <div><dt>Category</dt><dd>${escapeHTML(item.category || "—")}</dd></div><div><dt>Available Stock</dt><dd>${item.quantity} ${escapeHTML(item.unit || "pcs")}</dd></div><div><dt>Minimum Stock</dt><dd>${item.minimumStock}</dd></div><div><dt>Unit Cost</dt><dd>${money(item.unitCost || 0)}</dd></div><div><dt>Stock Value</dt><dd>${money(item.quantity * (item.unitCost || 0))}</dd></div><div><dt>Selling Price</dt><dd>${money(item.price)}</dd></div><div><dt>Supplier</dt><dd>${escapeHTML(item.supplier || "—")}</dd></div><div><dt>Status</dt><dd>${item.active === false ? "Archived" : statusLabel(item)}</dd></div>
       </dl><div class="form-actions"><button type="button" class="secondary-btn" data-close>Close</button></div></div>`);
     }
     function itemForm(item) {
-      const { element, close } = openDialog(`<form class="inventory-editor"><h2>${item ? `Edit ${escapeHTML(item.name)}` : "Add a product"}</h2><p class="muted">Keep stock and pricing details accurate.</p><div class="form-grid">
+      const { element, close } = openDialog(`<form class="inventory-editor"><h2>${item ? `Edit ${escapeHTML(item.name)}` : "Add a product"}</h2><p class="muted">Keep stock and pricing details accurate.</p><div class="inventory-image-field"><label for="ifImage">Product image (optional, JPG / PNG / WebP, max 2 MB)</label><div class="inventory-image-picker"><div id="ifImagePreview">${productPhoto(item || {name: "Product"}, true)}</div><div><input id="ifImage" type="file" accept="image/jpeg,image/png,image/webp"><small>Choose a new image to replace the existing one.</small></div></div></div><div class="form-grid">
         <div><label for="ifName">Product name *</label><input id="ifName" name="name" maxlength="100" required value="${escapeHTML(item?.name || "")}"></div>
         <div><label for="ifCategory">Category</label><input id="ifCategory" name="category" maxlength="60" placeholder="e.g. Hair care" value="${escapeHTML(item?.category || "")}"></div>
         <div><label for="ifUnit">Stock unit *</label><select id="ifUnit" name="unit"><option value="pcs" ${!item?.unit || item.unit === "pcs" ? "selected" : ""}>Pieces (pcs)</option><option value="g" ${item?.unit === "g" ? "selected" : ""}>Grams (g)</option><option value="ml" ${item?.unit === "ml" ? "selected" : ""}>Milliliters (ml)</option><option value="bottles" ${item?.unit === "bottles" ? "selected" : ""}>Bottles</option><option value="boxes" ${item?.unit === "boxes" ? "selected" : ""}>Boxes</option><option value="packs" ${item?.unit === "packs" ? "selected" : ""}>Packs</option><option value="jars" ${item?.unit === "jars" ? "selected" : ""}>Jars</option><option value="cans" ${item?.unit === "cans" ? "selected" : ""}>Cans</option></select></div>
@@ -139,12 +123,37 @@
         <div><label for="ifCost">Unit Cost (₱)</label><input id="ifCost" name="unitCost" type="number" min="0" step="0.01" value="${item?.unitCost ?? 0}"></div>
         <div><label for="ifSupplier">Supplier</label><input id="ifSupplier" name="supplier" maxlength="100" placeholder="Supplier name (optional)" value="${escapeHTML(item?.supplier || "")}"></div></div>
         <div class="form-actions"><button type="submit" class="primary-btn">${item ? "Save changes" : "Add product"}</button><button type="button" class="secondary-btn" data-close>Cancel</button></div><p class="message" id="ifMessage" role="status"></p></form>`);
+      const imageInput = element.querySelector("#ifImage");
+      const imagePreview = element.querySelector("#ifImagePreview");
+      let imageData = null;
+      imageInput.addEventListener("change", async () => {
+        const file = imageInput.files?.[0];
+        imageData = null;
+        if (!file) { imagePreview.innerHTML = productPhoto(item || {name: "Product"}, true); return; }
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > 2 * 1024 * 1024) {
+          imageInput.value = "";
+          setMessage(element.querySelector("#ifMessage"), "Choose a JPG, PNG, or WebP image up to 2 MB.", "error");
+          return;
+        }
+        imageData = file;
+        const reader = new FileReader();
+        reader.onload = () => { if (imageData === file) { const img = document.createElement("img"); img.className = "inventory-product-photo inventory-photo-large"; img.alt = "Selected product image"; img.src = reader.result; imagePreview.replaceChildren(img); } };
+        reader.readAsDataURL(file);
+        setMessage(element.querySelector("#ifMessage"), "");
+      });
       element.querySelector("form").addEventListener("submit", async event => {
         event.preventDefault();
         const form = event.currentTarget;
         const values = Object.fromEntries(new FormData(form).entries());
         const data = { name: values.name, category: values.category, unit: values.unit, quantity: Number(values.quantity), minimumStock: Number(values.minimumStock), price: Number(values.price), unitCost: Number(values.unitCost), supplier: values.supplier };
         await busy(event.submitter, async () => { try {
+          // Upload first; an existing image remains unchanged unless a replacement is selected.
+          if (imageData) {
+            const response = await fetch("/api/inventory/images", { method: "POST", credentials: "same-origin", headers: { "Content-Type": imageData.type }, body: imageData });
+            const uploaded = await response.json().catch(() => ({}));
+            if (!response.ok || !uploaded.imageUrl) throw new Error(uploaded.error || "Unable to upload product image.");
+            data.imageUrl = uploaded.imageUrl;
+          }
           await api(item ? `/api/inventory/${item.id}` : "/api/inventory", { method: item ? "PATCH" : "POST", body: data });
           close(); await load(); toast(`${data.name} saved.`);
         } catch (error) { setMessage(element.querySelector("#ifMessage"), error.message, "error"); } });
