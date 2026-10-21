@@ -166,7 +166,14 @@
       if (!confirmed) return;
       await busy(btn, async () => { try {
         const result = await api(isCancel ? `/api/appointments/${id}/cancel` : isCheckin ? `/api/appointments/${id}/checkin` : `/api/appointments/${id}/status`, { method: 'POST', body: btn.dataset.bookStatus ? { status: btn.dataset.bookStatus } : {} });
-        toast(result.message || 'Appointment updated.'); await load();
+        toast(result.message || 'Appointment updated.');
+        if (isCheckin) {
+          // The API has already created the waiting queue ticket. Open Front Desk
+          // so its existing live-queue renderer loads the checked-in customer.
+          window.location.hash = '#desk';
+          return;
+        }
+        await load();
       } catch (err) { toast(err.message, 'error'); } });
     };
     body._cashierAppointmentClick = handleAppointmentClick;
