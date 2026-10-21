@@ -26,6 +26,7 @@
     const canCancel=CHANGEABLE.includes(normalizedStatus(a.status))&&inFuture(a);
     const canChange=eligible(a);
     const photo=photoFor(a);
+    const canRemove=currentTab==='history'&&!upcoming(a);
     return `<article class="appointment-card" aria-label="${esc(a.service)} appointment on ${esc(dateLabel(a.startsAt))}">
       <div class="appointment-card__image">${photo?`<img src="${esc(photo)}" alt="${esc(a.service)} haircut" loading="lazy">`:'<span>Haircut photo unavailable</span>'}</div>
       <div class="appointment-card__body"><div class="appointment-card__top"><div class="appointment-card__headline"><span class="appointment-card__eyebrow">${esc(dateLabel(a.startsAt))}</span><h3>${esc(a.service)}</h3><p class="appointment-card__time"><span aria-hidden="true">◷</span> ${esc(timeLabel(a.startsAt))}</p></div>${statusBadge(a)}</div>
@@ -35,9 +36,10 @@
         <div><span>Price</span><strong>${money(a.price)}</strong></div>
         <div><span>Required arrival</span><strong>${esc(timeLabel(new Date(new Date(a.startsAt).getTime()-10*60000)))}</strong></div><div><span>Payment method</span><strong>${esc(String(a.method||'—').toUpperCase())}</strong></div>
       </div>
-      <div class="appointment-card__bottom"><div class="appointment-card__actions" style="grid-template-columns:repeat(${Number(canChange)+Number(canCancel)||1},minmax(0,1fr))">
+      <div class="appointment-card__bottom"><div class="appointment-card__actions" style="grid-template-columns:repeat(${Number(canChange)+Number(canCancel)+Number(canRemove)||1},minmax(0,1fr))">
         ${canChange?`<button type="button" class="appointment-reschedule-btn" data-appointment-action="edit" data-id="${esc(a.id)}">Edit Appointment</button>`:''}
         ${canCancel?`<button type="button" class="danger-btn" data-appointment-action="cancel" data-id="${esc(a.id)}">Cancel</button>`:''}
+        ${canRemove?`<button type="button" class="appointment-remove-history-btn" data-appointment-action="remove-history" data-id="${esc(a.id)}" aria-label="Remove ${esc(a.service)} appointment from history"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v7m4-7v7"/></svg> Remove from History</button>`:''}
       </div>${!canChange&&canCancel?'<small class="appointment-card__notice">Editing closes 2 hours before your appointment.</small>':''}</div>
       </div>
     </article>`;
@@ -113,6 +115,20 @@
     });
   }
 
+  async function removeFromHistory(a,button){
+    if(upcoming(a))return;
+    const confirmed=await App.confirmDialog(`Remove your ${a.service} appointment on ${dateLabel(a.startsAt)} from your history? This only hides it from your account; the shop keeps its original booking records.`,{title:'Remove from history',confirmText:'Remove',danger:true});
+    if(!confirmed)return;
+    await busy(button,async()=>{
+      try{
+        await api(`/api/appointments/${encodeURIComponent(a.id)}/hide-history`,{method:'POST'});
+        all=all.filter(item=>String(item.id)!==String(a.id));
+        draw();
+        App.toast('Appointment removed from your history.');
+      }catch(e){App.toast(e.message||'Could not remove appointment.','error');}
+    });
+  }
+
   function edit(a){
     if(!eligible(a)){App.toast('Editing closes 2 hours before your appointment.','info');refresh();return;}
     window.CustomerBooking?.edit?.(a);
@@ -131,6 +147,7 @@
     const a=all.find(item=>String(item.id)===button.dataset.id);if(!a)return;
     if(action==='details')details(a);
     if(action==='cancel')await cancel(a,button);
+    if(action==='remove-history')await removeFromHistory(a,button);
     if(action==='edit')edit(a);
   });
   window.CustomerBookingHistory={refresh};

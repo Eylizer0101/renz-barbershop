@@ -125,13 +125,26 @@ router.get('/live', ...customerOnly, async (req,res) => {
 });
 
 router.get('/mine', ...customerOnly, async (req,res) => {
-  const items=await req.app.locals.db.collection('appointments').find({customerId:req.user._id}).sort({startsAt:-1}).limit(100).toArray();
+  const items=await req.app.locals.db.collection('appointments').find({customerId:req.user._id,hiddenFromCustomerHistory:{$ne:true}}).sort({startsAt:-1}).limit(100).toArray();
   // Show the saved haircut photo; older appointments can use their service's current image.
   const missing=[...new Set(items.filter(a=>!a.imageUrl&&a.serviceId).map(a=>String(a.serviceId)))].map(toObjectId).filter(Boolean);
   const services=missing.length?await req.app.locals.db.collection('services').find({_id:{$in:missing}},{projection:{imageUrl:1}}).toArray():[];
   const images=new Map(services.map(s=>[String(s._id),s.imageUrl||'']));
   res.json(items.map(a=>({...view(a),imageUrl:a.imageUrl||images.get(String(a.serviceId))||''})));
 });
+// Customer-only history removal: retain the original appointment for staff, reports and payments.
+router.post('/:id/hide-history',...customerOnly,async(req,res)=>{
+  const id=toObjectId(req.params.id);
+  if(!id)return res.status(400).json({error:'Invalid appointment.'});
+  const result=await req.app.locals.db.collection('appointments').findOneAndUpdate(
+    {_id:id,customerId:req.user._id,hiddenFromCustomerHistory:{$ne:true},$or:[{status:{$nin:ACTIVE_BOOKINGS}},{startsAt:{$lte:new Date()}}]},
+    {$set:{hiddenFromCustomerHistory:true,hiddenFromCustomerHistoryAt:new Date()}}
+  );
+  if(!result)return res.status(409).json({error:'This appointment is unavailable or cannot be removed from history.'});
+  await audit(req,'appointment.history-hidden',{appointmentId:String(id)});
+  res.json({message:'Appointment removed from your history.'});
+});
+
 router.get('/notifications', requireAuth, async (req,res) => {
   const filter=req.user.role==='customer'?{customerId:req.user._id}:{type:{$in:['created','cancelled','confirmed','checked-in','no-show']}};
   const items=await req.app.locals.db.collection('appointmentNotifications').find(filter).sort({createdAt:-1}).limit(req.query.all === '1' ? 0 : 50).toArray();
