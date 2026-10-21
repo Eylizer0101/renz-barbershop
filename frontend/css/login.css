@@ -512,3 +512,12 @@ body.login-is-locked { overflow: hidden; }
 .login-lock-dialog p { margin: 0; color: #596273; line-height: 1.5; font-size: 15px; }
 .login-lock-dialog .login-lock-countdown { margin-top: 18px; color: #db2424; font-weight: 700; }
 @media(max-width:480px){.login-lock-dialog{padding:24px 18px}.login-lock-icon{width:76px;height:76px}}
+
+/* Put login errors directly below the Customer / Admin-Cashier tabs. */
+body.login-page:has(#staffForm) #loginMessage {
+  text-align: center;
+  margin: 0 0 16px;
+  min-height: 0;
+  width: 100%;
+}
+body.login-page:has(#staffForm) #loginMessage:empty { display: none; }
