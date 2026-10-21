@@ -384,3 +384,8 @@ body.login-page:has(#registerForm) .login-back-link { z-index: 3; }
   cursor: pointer;
 }
 .forgot-password-toggle:hover { background: #e9deca; }
+
+/* Golden scissors identity in login, registration and verification banners. */
+.login-brand .brand-icon img{display:block;width:68px;height:68px;object-fit:contain}
+body.login-page:has(#registerForm) .login-brand .brand-icon img{width:65px;height:65px}
+@media(max-width:760px){.login-brand .brand-icon img{width:40px;height:40px}body.login-page:has(#registerForm) .login-brand .brand-icon img{width:42px;height:42px}}
