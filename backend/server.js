@@ -76,7 +76,7 @@ for (const [name, target] of Object.entries(legacyScripts)) {
 }
 
 // Legacy links/API redirects still point to *.html. All role views use one HTML entry.
-for (const oldPage of ["login", "verify", "forgot-password", "admin", "cashier", "dashboard", "display"]) {
+for (const oldPage of ["login", "verify", "forgot-password", "staff-register", "admin", "cashier", "dashboard", "display"]) {
   app.get(`/${oldPage}.html`, (req, res) => res.sendFile(path.join(__dirname, "..", "frontend", "index.html")));
 }
 // New uploads live in MongoDB so images survive Render restarts and redeploys.

@@ -315,6 +315,139 @@ router.post("/resend-registration", registerCodeLimiter, async (req, res) => {
 });
 
 
+
+// Staff registration is invitation-code gated, with separate Admin/Cashier codes.
+// The invisible link is only navigation; the server ALWAYS verifies authorization.
+const staffRegisterLimiter = limiter(5, "Too many staff registration requests. Try again later.");
+const staffVerifyLimiter = limiter(10, "Too many staff verification attempts. Try again later.");
+const STAFF_PENDING_TTL = 5 * 60 * 1000;
+const STAFF_RESEND_COOLDOWN = 120 * 1000;
+const STAFF_MAX_RESENDS = 3;
+function staffSecret(role) {
+  return role === "admin" ? process.env.ADMIN_REGISTRATION_CODE : process.env.CASHIER_REGISTRATION_CODE;
+}
+function staffSecretHash(secret) {
+  return crypto.createHmac("sha256", process.env.JWT_SECRET).update(`staff-secret:${secret}`).digest("hex");
+}
+function staffCodeMatches(supplied, configured) {
+  if (typeof configured !== "string" || configured.length < 24 || typeof supplied !== "string") return false;
+  const a = Buffer.from(staffSecretHash(supplied), "hex");
+  const b = Buffer.from(staffSecretHash(configured), "hex");
+  return crypto.timingSafeEqual(a, b);
+}
+function pendingStaffId(req) {
+  const value = req.signedCookies?.pendingStaffRegistration;
+  return typeof value === "string" && /^[a-f0-9]{64}$/.test(value) ? value : null;
+}
+function staffOtpHash(id, code) {
+  return crypto.createHmac("sha256", process.env.JWT_SECRET).update(`staff-otp:${id}:${code}`).digest("hex");
+}
+function setStaffCookie(res, id) {
+  res.cookie("pendingStaffRegistration", id, { ...cookieOptions, signed: true, maxAge: STAFF_PENDING_TTL });
+}
+router.post("/register-staff", staffRegisterLimiter, async (req, res) => {
+  const db = req.app.locals.db;
+  const name = cleanText(req.body.name, 60);
+  const email = cleanText(req.body.email, 254).toLowerCase();
+  const role = req.body.role;
+  const password = String(req.body.password ?? "");
+  const code = req.body.registrationCode;
+  if (!validName(name) || !validEmail(email) || !["admin", "cashier"].includes(role) || !strongPassword(password) || password.length > 128) {
+    return res.status(400).json({ error: "Enter valid staff details and a strong password (10+ characters, uppercase, lowercase, number and symbol)." });
+  }
+  if (!staffSecret(role) || staffSecret(role).length < 24) {
+    return res.status(503).json({ error: "Staff registration is not configured. Contact the system owner." });
+  }
+  if (!staffCodeMatches(code, staffSecret(role))) {
+    return res.status(403).json({ error: "Invalid staff registration code." });
+  }
+  if (await db.collection("users").findOne({ email })) {
+    return res.status(409).json({ error: "An account with this email already exists. Sign in instead." });
+  }
+  const pending = db.collection("pendingStaffRegistrations");
+  // Do not reset the cooldown by repeatedly requesting new verification emails.
+  const recent = await pending.findOne({ email, expiresAt: { $gt: new Date() }, resendAvailableAt: { $gt: new Date() } });
+  if (recent) return res.status(429).json({ error: "Please wait 120 seconds before requesting another verification code." });
+  const id = crypto.randomBytes(32).toString("hex");
+  const otp = newCode();
+  const now = new Date();
+  const doc = { _id: id, name, email, role, passwordHash: await bcrypt.hash(password, 12), authorizationHash: staffSecretHash(staffSecret(role)),
+    otpHash: staffOtpHash(id, otp), attempts: 0, resends: 0, createdAt: now,
+    expiresAt: new Date(Date.now() + STAFF_PENDING_TTL), resendAvailableAt: new Date(Date.now() + STAFF_RESEND_COOLDOWN) };
+  await pending.deleteMany({ email });
+  await pending.insertOne(doc);
+  try { await sendCustomerVerification(email, otp); }
+  catch (error) {
+    await pending.deleteOne({ _id: id });
+    console.error("[Staff Registration] Verification email failed:", error.code || error.message);
+    return res.status(502).json({ error: "Could not send the verification email. Please check email configuration." });
+  }
+  setStaffCookie(res, id);
+  return res.status(202).json({ message: "Verification code sent.", resendAfterSeconds: 120 });
+});
+
+router.get("/staff-registration-status", staffVerifyLimiter, async (req, res) => {
+  const id = pendingStaffId(req);
+  if (!id) return res.status(401).json({ error: "Start by completing staff registration." });
+  const entry = await req.app.locals.db.collection("pendingStaffRegistrations").findOne({ _id: id, expiresAt: { $gt: new Date() } });
+  if (!entry) return res.status(410).json({ error: "Staff registration has expired. Register again." });
+  return res.json({ email: entry.email, resendAfterSeconds: Math.max(0, Math.ceil((entry.resendAvailableAt - Date.now()) / 1000)) });
+});
+
+router.post("/verify-staff-registration", staffVerifyLimiter, async (req, res) => {
+  const id = pendingStaffId(req);
+  const code = String(req.body.code ?? "").trim();
+  if (!id || !/^\d{6}$/.test(code)) return res.status(400).json({ error: "Enter the 6-digit verification code." });
+  const db = req.app.locals.db;
+  const pending = db.collection("pendingStaffRegistrations");
+  const entry = await pending.findOneAndUpdate({ _id: id, expiresAt: { $gt: new Date() }, attempts: { $lt: 5 }, claimedAt: { $exists: false } }, { $inc: { attempts: 1 } }, { returnDocument: "after" });
+  if (!entry) return res.status(410).json({ error: "Code expired or too many attempts. Start registration again." });
+  if (!crypto.timingSafeEqual(Buffer.from(staffOtpHash(id, code), "hex"), Buffer.from(entry.otpHash, "hex"))) {
+    return res.status(400).json({ error: "Incorrect verification code." });
+  }
+  // Rotating an authorization code invalidates existing pending registrations.
+  const configured = staffSecret(entry.role);
+  if (!configured || configured.length < 24 || !crypto.timingSafeEqual(Buffer.from(staffSecretHash(configured), "hex"), Buffer.from(entry.authorizationHash, "hex"))) {
+    await pending.deleteOne({ _id: id });
+    return res.status(403).json({ error: "Registration authorization expired. Contact the system owner." });
+  }
+  const claimed = await pending.findOneAndUpdate({ _id: id, otpHash: entry.otpHash, claimedAt: { $exists: false }, expiresAt: { $gt: new Date() } }, { $set: { claimedAt: new Date() } }, { returnDocument: "after" });
+  if (!claimed) return res.status(409).json({ error: "This verification code was already used." });
+  const user = { name: claimed.name, email: claimed.email, role: claimed.role, passwordHash: claimed.passwordHash, active: true,
+    emailVerified: true, emailVerifiedAt: new Date(), sessionVersion: 0, mustChangePassword: false, createdAt: new Date(), updatedAt: new Date() };
+  try { await db.collection("users").insertOne(user); }
+  catch (error) {
+    await pending.deleteOne({ _id: id });
+    if (error.code === 11000) return res.status(409).json({ error: "An account with this email already exists." });
+    throw error;
+  }
+  await pending.deleteOne({ _id: id });
+  res.clearCookie("pendingStaffRegistration", cookieOptions);
+  await audit(req, "staff.self-registered", { staff: user.name, email: user.email, role: user.role });
+  return res.json({ message: "Staff account created. Sign in now.", redirectUrl: "/login.html#staff" });
+});
+
+router.post("/resend-staff-registration", staffVerifyLimiter, async (req, res) => {
+  const id = pendingStaffId(req);
+  if (!id) return res.status(401).json({ error: "Register again to request a code." });
+  const pending = req.app.locals.db.collection("pendingStaffRegistrations");
+  const now = new Date();
+  const entry = await pending.findOne({ _id: id, expiresAt: { $gt: now }, resendAvailableAt: { $lte: now }, resends: { $lt: STAFF_MAX_RESENDS }, claimedAt: { $exists: false } });
+  if (!entry) return res.status(429).json({ error: "Please wait for the cooldown or register again." });
+  const code = newCode();
+  const changed = await pending.updateOne({ _id: id, otpHash: entry.otpHash, resends: { $lt: STAFF_MAX_RESENDS } }, {
+    $set: { otpHash: staffOtpHash(id, code), attempts: 0, expiresAt: new Date(Date.now() + STAFF_PENDING_TTL), resendAvailableAt: new Date(Date.now() + STAFF_RESEND_COOLDOWN) },
+    $inc: { resends: 1 } });
+  if (!changed.modifiedCount) return res.status(409).json({ error: "Please try again." });
+  try { await sendCustomerVerification(entry.email, code); }
+  catch (error) {
+    console.error("[Staff Registration] Resend failed:", error.code || error.message);
+    return res.status(502).json({ error: "Could not resend verification email." });
+  }
+  setStaffCookie(res, id);
+  res.json({ message: "A new verification code has been sent.", resendAfterSeconds: 120 });
+});
+
 // Password recovery: hashed, one-use token, 15-minute expiration and no account enumeration.
 const resetLimiter = limiter(5, 'Too many password reset requests. Please try again later.');
 const RESET_TTL_MS = 15 * 60 * 1000;

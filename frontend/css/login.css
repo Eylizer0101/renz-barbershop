@@ -398,3 +398,18 @@ body.login-page:has(#registerForm) .login-brand-overlay > .brand-icon {
   align-items: center;
   margin: 0 0 14px;
 }
+
+/* Discreet staff registration entry on the lower-left of the login brand panel. */
+body.login-page:has(#staffForm) .login-brand { position: relative; }
+body.login-page:has(#staffForm) .staff-secret-entry { position: absolute; left: 0; bottom: 0; width: 52px; height: 52px; background: transparent; border: 0; z-index: 3; }
+body.login-page:has(#staffForm) .staff-secret-entry:focus-visible { outline: 3px solid #c9a46a; outline-offset: -4px; }
+/* Reuse the auth split-panel design for the protected staff registration page. */
+body.staff-registration-page .login-layout { max-width: 1030px; }
+body.staff-registration-page .login-brand { position: relative; align-items: center; text-align: center; background: #15120f url('/images/chaire.png') center / cover no-repeat; }
+body.staff-registration-page .login-brand-overlay { width: 100%; }
+body.staff-registration-page .login-brand .brand-icon { display: flex; justify-content: center; margin-bottom: 14px; }
+body.staff-registration-page .login-content { padding-top: 40px; padding-bottom: 40px; }
+body.staff-registration-page .login-form select { width: 100%; padding: 13px 14px; border: 1px solid #d8d8d4; border-radius: 9px; font: inherit; background: white; }
+body.staff-registration-page .staff-register-hint { color: #777; font-size: 13px; line-height: 1.55; margin: 14px 0 0; }
+body.staff-registration-page .login-form[hidden] { display: none !important; }
+@media (max-width: 700px) { body.login-page:has(#staffForm) .staff-secret-entry { width: 40px; height: 40px; } body.staff-registration-page .login-brand { flex-direction: row; } }
