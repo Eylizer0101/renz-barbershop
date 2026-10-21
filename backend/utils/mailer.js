@@ -21,24 +21,6 @@ const transporter = smtpConfigured
   })
   : null;
 
-// Appointment notifications always use the dedicated Gmail EMAIL_* account.
-// Brevo sender settings must never override this account's From address.
-const gmailHost = process.env.EMAIL_HOST;
-const gmailPort = Number(process.env.EMAIL_PORT || 587);
-const gmailUser = process.env.EMAIL_USER;
-const gmailPass = process.env.EMAIL_PASS;
-const gmailReady = Boolean(gmailHost && gmailUser && gmailPass && [465, 587].includes(gmailPort));
-const gmailTransporter = gmailReady ? nodemailer.createTransport({
-  host: gmailHost,
-  port: gmailPort,
-  secure: gmailPort === 465,
-  requireTLS: gmailPort === 587,
-  connectionTimeout: 12000,
-  greetingTimeout: 12000,
-  socketTimeout: 20000,
-  auth: { user: gmailUser, pass: gmailPass }
-}) : null;
-
 async function send2FA(email, code) {
   if (!transporter) {
     if (process.env.NODE_ENV === "production") {
@@ -105,42 +87,47 @@ function appointmentEmailHTML(subject, message, appointment) {
 }
 
 async function sendAppointmentEmail(email, subject, message, appointment = null) {
-  if (!gmailTransporter) {
-    console.error('[Appointment email] Gmail SMTP is not configured correctly. Check EMAIL_HOST, EMAIL_PORT (587/465), EMAIL_USER and EMAIL_PASS in Render.');
-    const error = new Error('Gmail SMTP is not configured correctly.');
-    error.code = 'GMAIL_CONFIG';
-    throw error;
-  }
-  if (typeof email !== 'string' || !email.trim()) {
-    const error = new Error('Appointment does not have a customer email address.');
-    error.code = 'MISSING_RECIPIENT';
+  // Appointment notifications use Brevo's HTTPS API, not SMTP ports blocked by
+  // Render Free. Registration and password reset keep their existing paths.
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_FROM_EMAIL;
+  if (!apiKey || !senderEmail) {
+    const error = new Error('Appointment email requires BREVO_API_KEY and BREVO_FROM_EMAIL (verified in Brevo).');
+    error.code = 'BREVO_NOT_CONFIGURED';
+    console.error('[Appointment email] Brevo API configuration missing.');
     throw error;
   }
 
-  // Do not log email addresses, passwords, content or appointment details.
-  console.info('[Appointment email] Gmail SMTP send started.');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  console.log('[Appointment email] Brevo API send started.');
   try {
-    const info = await gmailTransporter.sendMail({
-      from: { name: 'RENZ BARBERSHOP', address: gmailUser },
-      to: email,
-      subject,
-      text: message,
-      html: appointmentEmailHTML(subject, message, appointment)
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        sender: { email: senderEmail, name: process.env.BREVO_FROM_NAME || 'RENZ BARBERSHOP' },
+        to: [{ email }],
+        subject,
+        textContent: message,
+        htmlContent: appointmentEmailHTML(subject, message, appointment)
+      }),
+      signal: controller.signal
     });
-    if (!info.accepted?.length) {
-      const error = new Error('Gmail SMTP did not accept the recipient.');
-      error.code = 'GMAIL_NOT_ACCEPTED';
+    if (!response.ok) {
+      const error = new Error(`Brevo API rejected appointment email (HTTP ${response.status}). Check sender verification, API key and account status.`);
+      error.code = `BREVO_HTTP_${response.status}`;
       throw error;
     }
-    // SMTP acceptance means Gmail queued the message, not guaranteed inbox delivery.
-    console.info('[Appointment email] Gmail SMTP accepted the message (inbox delivery not guaranteed).');
-    return info;
+    console.log('[Appointment email] Brevo API accepted the message.');
   } catch (error) {
-    console.error('[Appointment email] Gmail SMTP send failed:', error.code || error.message);
+    const reason = error.name === 'AbortError' ? 'BREVO_TIMEOUT' : (error.code || error.name || 'BREVO_REQUEST_FAILED');
+    console.error(`[Appointment email] Brevo API send failed: ${reason}`);
     throw error;
+  } finally {
+    clearTimeout(timeout);
   }
 }
-
 async function sendCustomerVerification(email, code) {
   const senderEmail = process.env.BREVO_FROM_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
   if (!senderEmail) throw new Error("Sender email is not configured.");
