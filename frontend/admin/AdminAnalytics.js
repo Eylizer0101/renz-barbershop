@@ -353,7 +353,7 @@
         const t = data.totals || {};
         body.querySelector("#analyticsCustomerTotal").textContent = formatNumber(t.visits);
         const stats = [["Total Revenue", money(t.revenue)], ["Completed Services", formatNumber(t.served)], ["Average Wait", data.averageWaitMinutes == null ? "—" : `${data.averageWaitMinutes} min`], ["Appointments", formatNumber(t.appointments)], ["Low Stock", formatNumber(data.inventory?.low)]];
-        const kpiIcons = ["/images/CashierDashboard/Pesobadge.png", "/images/CashierDashboard/CheckmarkBadge.png", "/images/CashierDashboard/Waiting.png", "/images/customerDashboard/GoldenCalendar.png", "/images/customerDashboard/Shophours.png"];
+        const kpiIcons = ["/images/CashierDashboard/PesoBadge.png", "/images/CashierDashboard/CheckmarkBadge.png", "/images/CashierDashboard/Waiting.png", "/images/customerDashboard/GoldenCalendar.png", "/images/customerDashboard/Shophours.png"];
         body.querySelector("#analyticsKpis").innerHTML = stats.map(([label, value], i) => `<article class="analytics-kpi"><span class="analytics-kpi-icon" aria-hidden="true"><img src="${kpiIcons[i]}" alt="" loading="lazy" decoding="async"></span><strong>${value}</strong><span class="analytics-kpi-label">${label}</span></article>`).join("");
         renderTab(body);
       } catch (error) { if (disposed || token !== state.token) return; destroy(); body.querySelector("#analyticsKpis").innerHTML = `<div class="analytics-error">${escapeHTML(error.message)} <button class="secondary-btn" type="button" id="analyticsRetry">Retry</button></div>`; body.querySelector("#analyticsCharts").innerHTML = ""; body.querySelector("#analyticsRetry")?.addEventListener("click", load); }
