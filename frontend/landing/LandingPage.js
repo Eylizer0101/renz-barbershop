@@ -5,6 +5,43 @@
   document.body.innerHTML = "<header class=\"landing-nav\"><a class=\"landing-logo\" href=\"/\" aria-label=\"Renz Barbershop Home\"><span class=\"landing-scissors\">✂</span><span><strong>RENZ</strong><small>BARBERSHOP</small></span></a><nav aria-label=\"Main navigation\"><a href=\"#home\">Home</a><a href=\"#services\">Services</a><a href=\"#about\">About Us</a><a href=\"#gallery\">Gallery</a></nav><div class=\"landing-auth\"><a class=\"landing-register\" href=\"/login.html#register\">Register</a><a class=\"landing-login\" href=\"/login.html#signin\">Log In</a></div></header><main id=\"home\"><section class=\"landing-hero\"><div class=\"landing-copy\"><div class=\"landing-kicker\">WELCOME TO RENZ BARBERSHOP</div><h1>Fresh Cut.<br><em>Fresh Confidence.</em></h1><p>Great haircuts, good vibes, and a style that feels like you. Your style. Your turn. Your time.</p><div class=\"landing-actions\"><a href=\"/login.html\" data-landing-auth-modal>Book Your Cut <span aria-hidden=\"true\">→</span></a><a href=\"#services\">Explore Services</a></div><div class=\"landing-highlights\"><span>✦ Quality Haircuts</span><span>✦ Skilled Barbers</span><span>✦ Easy Booking</span></div></div><div class=\"landing-hero-photo\"><img src=\"/images/landingpage/1.png\" alt=\"Barber giving a fresh haircut\"/></div></section><section id=\"services\" class=\"landing-section landing-services\"><div class=\"landing-heading\"><span>WHAT WE DO</span><h2>Your next great look starts here.</h2><p>From a clean trim to a fresh new style, we've got you covered.</p></div><div class=\"landing-tiles\"><article><img src=\"/images/landingpage/2.png\" alt=\"Barbershop service showcase\"><div><span>01 / PRECISION</span><h3>Classic Cuts</h3><p>Sharp, clean, and timeless looks.</p></div></article><article><img src=\"/images/landingpage/3.png\" alt=\"Modern haircut showcase\"><div><span>02 / YOUR STYLE</span><h3>Modern Styles</h3><p>Fresh cuts made for your personality.</p></div></article><article><img src=\"/images/landingpage/4.png\" alt=\"Barbershop grooming showcase\"><div><span>03 / DETAILS</span><h3>Grooming</h3><p>It's the little details that count.</p></div></article></div><a class=\"landing-outline\" href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section><section id=\"about\" class=\"landing-about\"><div class=\"landing-about-image\"><img src=\"/images/landingpage/1.png\" alt=\"Inside Renz Barbershop\"></div><div><span class=\"landing-kicker\">MORE THAN JUST A HAIRCUT</span><h2>Look good.<br>Feel even better.</h2><p>At Renz Barbershop, every visit is about finding the look that fits you. Enjoy a welcoming space, dedicated barbers, and a simple way to plan your next visit.</p><a href=\"/login.html#register\" data-landing-auth-modal>Join Renz Barbershop →</a></div></section><section id=\"gallery\" class=\"landing-section landing-gallery\"><div class=\"landing-heading\"><span>OUR GALLERY</span><h2>Style inspiration</h2><p>Find your next look and make it your own.</p></div><div class=\"landing-gallery-grid\"><img src=\"/images/landingpage/2.png\" alt=\"Haircut gallery photo one\"><img src=\"/images/landingpage/3.png\" alt=\"Haircut gallery photo two\"><img src=\"/images/landingpage/4.png\" alt=\"Haircut gallery photo three\"></div></section><section class=\"landing-cta\"><span>READY FOR A FRESH LOOK?</span><h2>Your chair is waiting.</h2><p>Start your next barbershop visit with Renz.</p><a href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section></main><footer class=\"landing-footer\"><strong>✂ RENZ BARBERSHOP</strong><small>© 2026 Renz Barbershop</small></footer>";
 
 
+  // Mobile landing navigation: keep the desktop navigation intact.
+  const landingHeader = document.querySelector(".landing-nav");
+  const landingNav = landingHeader?.querySelector("nav");
+  const landingAuth = landingHeader?.querySelector(".landing-auth");
+  if (landingHeader && landingNav && landingAuth) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "landing-menu-toggle";
+    toggle.setAttribute("aria-label", "Open navigation menu");
+    toggle.setAttribute("aria-controls", "landingMobileNavigation");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    const menu = document.createElement("div");
+    menu.id = "landingMobileNavigation";
+    menu.className = "landing-mobile-navigation";
+    menu.setAttribute("inert", "");
+    const navCopy = landingNav.cloneNode(true);
+    navCopy.setAttribute("aria-label", "Mobile navigation");
+    const authCopy = landingAuth.cloneNode(true);
+    menu.append(navCopy, authCopy);
+    landingHeader.append(toggle, menu);
+    function setLandingOpen(open) {
+      landingHeader.classList.toggle("landing-menu-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
+      toggle.innerHTML = open
+        ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+      if (open) menu.removeAttribute("inert"); else menu.setAttribute("inert", "");
+    }
+    toggle.addEventListener("click", () => setLandingOpen(!landingHeader.classList.contains("landing-menu-open")));
+    menu.addEventListener("click", event => { if (event.target.closest("a")) setLandingOpen(false); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") setLandingOpen(false); });
+    document.addEventListener("click", event => { if (!landingHeader.contains(event.target)) setLandingOpen(false); });
+    window.matchMedia("(min-width: 701px)").addEventListener("change", event => { if (event.matches) setLandingOpen(false); });
+  }
+
   // Landing-only sign in / registration prompt for the three booking CTAs.
   // Styles are scoped to this modal; the existing landing layout stays unchanged.
   const modalStyles = document.createElement("style");

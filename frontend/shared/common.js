@@ -360,18 +360,27 @@
     button.type = "button";
     button.className = "menu-toggle";
     button.setAttribute("aria-expanded", "false");
-    button.innerHTML = '<span aria-hidden="true">☰</span> Menu';
+    button.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menu</span>';
+    button.setAttribute("aria-label", "Open navigation menu");
+    const menuId = sidebar.id ? sidebar.id + "-navigation" : "mobile-sidebar-navigation";
+    const nav = sidebar.querySelector(".nav");
+    if (nav) { nav.id = menuId; button.setAttribute("aria-controls", menuId); }
     brand.appendChild(button);
 
     const setOpen = open => {
       sidebar.classList.toggle("menu-open", open);
       button.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
+      button.querySelector("span").textContent = open ? "Close" : "Menu";
     };
 
     button.addEventListener("click", () => setOpen(!sidebar.classList.contains("menu-open")));
     sidebar.addEventListener("click", event => {
       if (event.target.closest(".nav-link")) setOpen(false);
     });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") setOpen(false); });
+    document.addEventListener("click", event => { if (!sidebar.contains(event.target)) setOpen(false); });
+    window.matchMedia("(min-width: 701px)").addEventListener("change", event => { if (event.matches) setOpen(false); });
   }
 
   setupMobileMenu();

@@ -4266,3 +4266,25 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .activity-detail-dialog dd{margin:0;text-align:right;overflow-wrap:anywhere;font-weight:600;font-size:13px;max-width:65%}
 @media(max-width:1250px){.activity-filter-card{grid-template-columns:repeat(3,minmax(0,1fr))}.activity-search{grid-column:span 2}}
 @media(max-width:700px){.activity-filter-card{grid-template-columns:1fr;padding:14px}.activity-search{grid-column:auto}.activity-table-heading{padding:18px;align-items:flex-start;flex-wrap:wrap}.activity-pagination{padding:14px}.activity-heading-right{width:100%;justify-content:space-between}}
+
+/* Mobile navigation and safe content sizing for Admin, Cashier and Customer. */
+@media(max-width:700px){
+  .sidebar{z-index:40;box-shadow:0 2px 12px #00000018}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;min-height:48px}
+  .sidebar .brand>div:not(.brand-icon){min-width:0}
+  .sidebar .menu-toggle{min-height:44px;min-width:44px;justify-content:center;font-size:14px;font-weight:700;white-space:nowrap}
+  .sidebar .menu-toggle svg{flex:none}
+  .sidebar.menu-open .nav{grid-template-columns:1fr;gap:5px;max-height:min(55dvh,480px);overflow-y:auto;padding:8px 2px 4px}
+  .sidebar.menu-open .nav .nav-link{min-height:44px;padding:12px 14px}
+  .sidebar.menu-open .sidebar-bottom{display:block;margin-top:8px;padding-top:8px}
+  .page,.container,.page-section,.card{min-width:0}
+  .page .container{width:100%;max-width:100%;padding:18px 4%}
+  .topbar{min-width:0;gap:10px}
+  .topbar .greeting{overflow-wrap:anywhere}
+  .table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .dialog-backdrop{padding:12px}
+  .dialog-backdrop .card{max-width:100%;max-height:calc(100dvh - 24px)}
+  .form-actions{gap:8px}
+  input,select,textarea{max-width:100%}
+}
+@media(max-width:380px){.sidebar .menu-toggle{padding:9px 11px}.topbar{padding:12px 4%}.section-heading h1{font-size:25px}}
