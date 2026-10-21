@@ -27,9 +27,14 @@ async function processAppointmentReminders(db) {
     await notify(db,a,`delayed-${band}`,'Renz Barbershop: Appointment delayed',`Your barber ${a.barberName} is running behind schedule. Updated estimated wait: about ${estimate} minutes. Please check the live dashboard for updates.`);
   }
   // Atomically claim each retry so parallel worker executions do not resend.
-  const due=await db.collection('appointmentNotifications').find({$or:[{emailStatus:'failed',emailAttempts:{$lt:3},nextEmailAttemptAt:{$lte:now}},{emailStatus:'pending',createdAt:{$lte:new Date(now.getTime()-120000)}}]}).sort({createdAt:1}).limit(15).toArray();
+  const due=await db.collection('appointmentNotifications').find({$or:[
+    {emailStatus:'failed',emailAttempts:{$lt:3},nextEmailAttemptAt:{$lte:now}},
+    {emailStatus:'pending',createdAt:{$lte:new Date(now.getTime()-120000)}},
+    // A Render restart can interrupt a previously claimed send. Recover it later.
+    {emailStatus:'sending',emailAttempts:{$lt:3},emailClaimedAt:{$lte:new Date(now.getTime()-5*60000)}}
+  ]}).sort({createdAt:1}).limit(15).toArray();
   for(const n of due){
-    const locked=await db.collection('appointmentNotifications').findOneAndUpdate({_id:n._id,emailStatus:n.emailStatus,emailAttempts:n.emailAttempts},{$set:{emailStatus:'sending'},$inc:{emailAttempts:1}});
+    const locked=await db.collection('appointmentNotifications').findOneAndUpdate({_id:n._id,emailStatus:n.emailStatus,emailAttempts:n.emailAttempts},{$set:{emailStatus:'sending',emailClaimedAt:new Date()},$inc:{emailAttempts:1}});
     if(!locked)continue;
     const a=await db.collection('appointments').findOne({_id:n.appointmentId});
     if(!a){await db.collection('appointmentNotifications').updateOne({_id:n._id},{$set:{emailStatus:'skipped'}});continue;}

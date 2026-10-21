@@ -21,6 +21,24 @@ const transporter = smtpConfigured
   })
   : null;
 
+// Appointment notifications always use the dedicated Gmail EMAIL_* account.
+// Brevo sender settings must never override this account's From address.
+const gmailHost = process.env.EMAIL_HOST;
+const gmailPort = Number(process.env.EMAIL_PORT || 587);
+const gmailUser = process.env.EMAIL_USER;
+const gmailPass = process.env.EMAIL_PASS;
+const gmailReady = Boolean(gmailHost && gmailUser && gmailPass && [465, 587].includes(gmailPort));
+const gmailTransporter = gmailReady ? nodemailer.createTransport({
+  host: gmailHost,
+  port: gmailPort,
+  secure: gmailPort === 465,
+  requireTLS: gmailPort === 587,
+  connectionTimeout: 12000,
+  greetingTimeout: 12000,
+  socketTimeout: 20000,
+  auth: { user: gmailUser, pass: gmailPass }
+}) : null;
+
 async function send2FA(email, code) {
   if (!transporter) {
     if (process.env.NODE_ENV === "production") {
@@ -87,16 +105,42 @@ function appointmentEmailHTML(subject, message, appointment) {
 }
 
 async function sendAppointmentEmail(email, subject, message, appointment = null) {
-  if (!transporter) {
-    // Do not silently claim delivery when SMTP is unconfigured.
-    console.warn('[Appointments] SMTP is not configured; customer email was not sent.');
-    throw new Error('SMTP is not configured.');
+  if (!gmailTransporter) {
+    console.error('[Appointment email] Gmail SMTP is not configured correctly. Check EMAIL_HOST, EMAIL_PORT (587/465), EMAIL_USER and EMAIL_PASS in Render.');
+    const error = new Error('Gmail SMTP is not configured correctly.');
+    error.code = 'GMAIL_CONFIG';
+    throw error;
   }
-  await transporter.sendMail({
-    from: mailFrom, to: email, subject, text: message,
-    html: appointmentEmailHTML(subject, message, appointment)
-  });
+  if (typeof email !== 'string' || !email.trim()) {
+    const error = new Error('Appointment does not have a customer email address.');
+    error.code = 'MISSING_RECIPIENT';
+    throw error;
+  }
+
+  // Do not log email addresses, passwords, content or appointment details.
+  console.info('[Appointment email] Gmail SMTP send started.');
+  try {
+    const info = await gmailTransporter.sendMail({
+      from: { name: 'RENZ BARBERSHOP', address: gmailUser },
+      to: email,
+      subject,
+      text: message,
+      html: appointmentEmailHTML(subject, message, appointment)
+    });
+    if (!info.accepted?.length) {
+      const error = new Error('Gmail SMTP did not accept the recipient.');
+      error.code = 'GMAIL_NOT_ACCEPTED';
+      throw error;
+    }
+    // SMTP acceptance means Gmail queued the message, not guaranteed inbox delivery.
+    console.info('[Appointment email] Gmail SMTP accepted the message (inbox delivery not guaranteed).');
+    return info;
+  } catch (error) {
+    console.error('[Appointment email] Gmail SMTP send failed:', error.code || error.message);
+    throw error;
+  }
 }
+
 async function sendCustomerVerification(email, code) {
   const senderEmail = process.env.BREVO_FROM_EMAIL || process.env.MAIL_FROM || process.env.SMTP_USER;
   if (!senderEmail) throw new Error("Sender email is not configured.");
