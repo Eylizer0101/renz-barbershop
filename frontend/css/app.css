@@ -2369,7 +2369,7 @@ body.customer-account-open { overflow:hidden; }
 /* Front Desk banner: today's customers and walk-in action. */
 .front-desk-view #deskHero {
   position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;
-  min-height:155px;margin-top:19px;padding:25px 32px;overflow:hidden;
+  min-height:138px;margin-top:19px;padding:17px 32px;overflow:hidden;
   border:1px solid #e6dfd4;border-radius:16px;
   color:#292820;background:#fff;
   box-shadow:0 5px 20px #322a180b;
@@ -2570,14 +2570,14 @@ body.customer-account-open { overflow:hidden; }
 /* Cashier welcome panel: readable without enlarging the white hero card. */
 .front-desk-view #deskHero .cashier-welcome-card {
   width:min(390px,44%);
-  min-height:116px;
+  min-height:104px;
   gap:11px;
-  padding:8px 15px 8px 7px;
+  padding:7px 15px 7px 7px;
 }
 .front-desk-view #deskHero .cashier-welcome-art {
-  flex:0 0 115px;
-  width:115px;
-  height:115px;
+  flex:0 0 100px;
+  width:100px;
+  height:100px;
 }
 .front-desk-view #deskHero .cashier-welcome-copy {gap:4px;}
 .front-desk-view #deskHero .cashier-welcome-kicker {font-size:13px;}
