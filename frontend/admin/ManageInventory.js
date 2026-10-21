@@ -188,7 +188,32 @@
     $("invPrevious").addEventListener("click", () => { if (page > 1) { page--; draw(); } });
     $("invNext").addEventListener("click", () => { if (page < Math.ceil(filteredList().length / pageSize)) { page++; draw(); } });
     function moreActions(item) {
-      const { element, close } = openDialog(`<div class="inventory-detail-dialog"><h2>${escapeHTML(item.name)}</h2><p class="muted">Choose an inventory action.</p><div class="inventory-modal-menu"><button type="button" data-action="in">+ Stock In</button><button type="button" data-action="out">− Stock Out</button><button type="button" data-action="history">Stock History</button><button type="button" class="inventory-menu-danger" data-action="archive">Archive Product</button></div><div class="form-actions"><button type="button" class="secondary-btn" data-close>Cancel</button></div></div>`);
+      const stock = stockStatus(item);
+      const stockText = statusLabel(item);
+      const icons = {
+        in: '<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',
+        out: '<path d="M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',
+        history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/>',
+        archive: '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M10 14h4"/>'
+      };
+      const actionIcon = action => `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[action]}</svg>`;
+      const { element, close } = openDialog(`<div class="inventory-actions-dialog">
+        <div class="inventory-actions-dialog-header"><span class="inventory-actions-kicker">PRODUCT MANAGEMENT</span><h2>Manage Product</h2><p>Choose what you'd like to do with this item.</p></div>
+        <div class="inventory-actions-product">
+          ${productPhoto(item, true)}
+          <div class="inventory-actions-product-info"><strong>${escapeHTML(item.name)}</strong><span>${escapeHTML(item.category || "Uncategorized")}</span><span class="inventory-stock-tag inventory-stock-${stock}">${escapeHTML(stockText)}</span></div>
+          <div class="inventory-actions-quantity"><strong>${Number(item.quantity)}</strong><span>${escapeHTML(item.unit || "pcs")}</span></div>
+        </div>
+        <span class="inventory-actions-section-label">STOCK OPERATIONS</span>
+        <div class="inventory-modal-menu">
+          <button type="button" data-action="in"><span class="inventory-menu-icon inventory-menu-icon-in">${actionIcon("in")}</span><span class="inventory-menu-copy"><strong>Stock In</strong><small>Add newly delivered or returned stocks</small></span><span class="inventory-menu-chevron" aria-hidden="true">›</span></button>
+          <button type="button" data-action="out" ${Number(item.quantity) <= 0 ? 'disabled title="No stock available to remove"' : ''}><span class="inventory-menu-icon inventory-menu-icon-out">${actionIcon("out")}</span><span class="inventory-menu-copy"><strong>Stock Out</strong><small>Record used, damaged or sold stocks</small></span><span class="inventory-menu-chevron" aria-hidden="true">›</span></button>
+          <button type="button" data-action="history"><span class="inventory-menu-icon inventory-menu-icon-history">${actionIcon("history")}</span><span class="inventory-menu-copy"><strong>Stock History</strong><small>View recorded stock movements</small></span><span class="inventory-menu-chevron" aria-hidden="true">›</span></button>
+        </div>
+        <span class="inventory-actions-section-label">PRODUCT STATUS</span>
+        <div class="inventory-modal-menu inventory-modal-menu-danger"><button type="button" data-action="archive"><span class="inventory-menu-icon inventory-menu-icon-archive">${actionIcon("archive")}</span><span class="inventory-menu-copy"><strong>Archive Product</strong><small>Hide from active inventory; preserve records</small></span><span class="inventory-menu-chevron" aria-hidden="true">›</span></button></div>
+        <div class="inventory-actions-dialog-footer"><button type="button" class="secondary-btn" data-close>Close</button></div>
+      </div>`);
       element.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => {
         const action = button.dataset.action; close();
         if (action === "in" || action === "out") stockForm(item, action);
