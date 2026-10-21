@@ -75,7 +75,7 @@
       $("staffRows").innerHTML = visible.length ? visible.map((s, i) => `
         <tr class="${s.active ? "" : "inactive"}">
           <td>${start + i + 1}</td>
-          <td><div class="staff-person"><span class="staff-avatar" aria-hidden="true">${escapeHTML((s.name || "S").trim().charAt(0).toUpperCase())}</span><span><strong>${escapeHTML(s.name)}</strong>${s.isYou ? ' <span class="chip">You</span>' : ""}</span></div></td>
+          <td><div class="staff-person"><img class="staff-avatar" src="/images/profile.jpg" alt="" loading="lazy" decoding="async"><span><strong>${escapeHTML(s.name)}</strong>${s.isYou ? ' <span class="chip">You</span>' : ""}</span></div></td>
           <td class="staff-email">${escapeHTML(s.email)}</td>
           <td><span class="staff-role-tag">${s.role === "admin" ? "Admin" : "Cashier"}</span></td>
           <td>${s.active ? '<span class="status-pill completed">Active</span>' : '<span class="status-pill cancelled">Deactivated</span>'}</td>
@@ -132,7 +132,7 @@
     });
 
     function showDetails(member) {
-      openDialog(`<div class="staff-detail-dialog"><h2>Staff Details</h2><div class="staff-detail-top"><span class="staff-avatar staff-avatar-large" aria-hidden="true">${escapeHTML((member.name || "S").trim().charAt(0).toUpperCase())}</span><div><h3>${escapeHTML(member.name)}</h3><p class="muted">${escapeHTML(member.email)}</p></div></div><dl>
+      openDialog(`<div class="staff-detail-dialog"><h2>Staff Details</h2><div class="staff-detail-top"><img class="staff-avatar staff-avatar-large" src="/images/profile.jpg" alt="" decoding="async"><div><h3>${escapeHTML(member.name)}</h3><p class="muted">${escapeHTML(member.email)}</p></div></div><dl>
         <div><dt>Role</dt><dd>${member.role === "admin" ? "Admin" : "Cashier"}</dd></div>
         <div><dt>Status</dt><dd>${member.active ? "Active" : "Deactivated"}</dd></div>
         <div><dt>Account created</dt><dd>${member.createdAt ? new Date(member.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "—"}</dd></div>

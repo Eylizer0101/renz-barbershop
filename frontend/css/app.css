@@ -4201,7 +4201,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .staff-table td:first-child{font-weight:700}
 .staff-person{display:flex;align-items:center;gap:10px;min-width:145px}
 .staff-person strong{font-size:13px;overflow-wrap:anywhere}
-.staff-avatar{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f4e8d5,#d2b386);color:#5b3f27;font-weight:800;font-size:15px}
+.staff-avatar{display:block;flex:0 0 38px;width:38px;height:38px;border-radius:50%;object-fit:cover;background:#242522}
 .staff-email{overflow-wrap:anywhere}
 .staff-role-tag{display:inline-block;border:1px solid #eee2ce;border-radius:20px;padding:6px 10px;color:#735635;background:#fbf5ea;font-size:12px;font-weight:700}
 .staff-action-group{display:inline-flex;gap:7px;align-items:center;justify-content:center;white-space:nowrap}
