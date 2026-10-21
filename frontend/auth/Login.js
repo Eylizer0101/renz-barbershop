@@ -182,7 +182,18 @@ function initializeAuthPage() {
   handle($("customerLoginForm"), () => signIn($("customerEmail").value.trim(), $("customerPassword").value));
   handle($("staffForm"), () => signIn($("staffEmail").value.trim(), $("staffPassword").value));
 
+  // Customer registration only: prevent non-digits and limit Philippine mobile input.
+  $("registerPhone").addEventListener("input", () => {
+    $("registerPhone").value = $("registerPhone").value.replace(/\D/g, "").slice(0, 11);
+  });
+
   handle($("registerForm"), async () => {
+    const fullName = $("registerName").value.trim().replace(/\s+/g, " ");
+    const email = $("registerEmail").value.trim();
+    const phone = $("registerPhone").value.trim();
+    if (fullName.length < 2 || fullName.length > 30) throw new Error("Full Name must be 2 to 30 characters.");
+    if (email.length > 30 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address (maximum 30 characters).");
+    if (!/^09\d{9}$/.test(phone)) throw new Error("Phone number must start with 09 and contain exactly 11 digits.");
     const password = $("registerPassword").value;
     const confirmation = $("registerConfirmPassword").value;
     if (password !== confirmation) throw new Error("Passwords do not match.");
@@ -190,9 +201,9 @@ function initializeAuthPage() {
       throw new Error("Password must be at least 8 characters with letters and numbers.");
     }
     const data = await post("/api/auth/register", {
-      name: $("registerName").value,
-      email: $("registerEmail").value,
-      phone: $("registerPhone").value,
+      name: fullName,
+      email,
+      phone,
       password: $("registerPassword").value
     });
     sessionStorage.removeItem("customerName");

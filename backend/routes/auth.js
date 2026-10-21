@@ -224,12 +224,14 @@ function pendingEmail(req) {
 }
 router.post("/register", registerLimiter, async (req, res) => {
   const db = req.app.locals.db;
-  const name = cleanText(req.body.name, 60);
-  const email = cleanText(req.body.email, 254).toLowerCase();
-  const phone = cleanText(req.body.phone, 20);
+  // Validate before truncating so oversized inputs are rejected rather than silently shortened.
+  const name = String(req.body.name ?? "").trim().replace(/\s+/g, " ");
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const phone = String(req.body.phone ?? "").trim();
   const password = String(req.body.password ?? "");
-  if (!validName(name)) return res.status(400).json({ error: "Enter your name (2 to 60 characters)." });
-  if (!validEmail(email)) return res.status(400).json({ error: "Enter a valid email address." });
+  if (!validName(name) || name.length > 30) return res.status(400).json({ error: "Enter your name (2 to 30 characters)." });
+  if (email.length > 30 || !validEmail(email)) return res.status(400).json({ error: "Enter a valid email address (maximum 30 characters)." });
+  if (!/^09\d{9}$/.test(phone)) return res.status(400).json({ error: "Phone number must start with 09 and contain exactly 11 digits." });
   if (!basicPassword(password)) return res.status(400).json({ error: "Password must be at least 8 characters with letters and numbers." });
   if (await db.collection("users").findOne({ email })) return res.status(409).json({ error: "An account with this email already exists. Sign in instead." });
   const pending = db.collection("pendingCustomerRegistrations");
