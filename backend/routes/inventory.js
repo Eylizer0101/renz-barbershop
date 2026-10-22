@@ -9,6 +9,29 @@ const router = express.Router();
 const imagePath = /^\/uploads\/inventory\/[a-f0-9-]+\.(?:jpg|png|webp)$/;
 const imageValue = value => typeof value === "string" && imagePath.test(value) ? value : "";
 
+// Keep inventory records and their movement history in the same transaction.
+async function inventoryTransaction(req, work) {
+  const session = req.app.locals.mongoClient?.startSession();
+  if (!session) { const error = new Error("Database transaction is unavailable."); error.status = 503; throw error; }
+  try {
+    let result;
+    await session.withTransaction(async () => { result = await work(session); });
+    return result;
+  } finally { await session.endSession(); }
+}
+function inventoryError(message, status = 409) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+function transactionFailure(res, error) {
+  if (error.status) return res.status(error.status).json({ error: error.message });
+  if (error.code === 112 || error.hasErrorLabel?.("TransientTransactionError"))
+    return res.status(409).json({ error: "Inventory changed while processing. Refresh and try again." });
+  throw error;
+}
+
+
 // Images are stored as binary in MongoDB, not on Render's ephemeral filesystem.
 router.post("/images", requireAuth, requireRole("admin"), express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "2mb" }), async (req, res) => {
   const data = req.body;
@@ -64,17 +87,18 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
     name, category, quantity, minimumStock, price, unit, unitCost, supplier, imageUrl, active: true,
     createdAt: new Date(), updatedAt: new Date()
   };
-  const result = await db.collection("inventory").insertOne(doc);
+  let result;
+  try {
+    result = await inventoryTransaction(req, async session => {
+      const inserted = await db.collection("inventory").insertOne(doc, { session });
+      await db.collection("inventoryEvents").insertOne({
+        inventoryId: inserted.insertedId, type: "created", quantityChange: quantity, createdAt: new Date()
+      }, { session });
+      return inserted;
+    });
+  } catch (error) { return transactionFailure(res, error); }
 
-  // Monthly analytics event
-  await db.collection("inventoryEvents").insertOne({
-    inventoryId: result.insertedId,
-    type: "created",
-    quantityChange: quantity,
-    createdAt: new Date()
-  });
-
-  await audit(req, "inventory.created", { product: name, quantity, price });
+  try { await audit(req, "inventory.created", { product: name, quantity, price }); } catch (error) { console.error("Inventory audit failed:", error.message); }
   res.status(201).json({ id: String(result.insertedId), ...doc });
 });
 
@@ -100,19 +124,22 @@ router.patch("/:id", requireAuth, requireRole("admin"), async (req, res) => {
     return res.status(400).json({ error: "Invalid inventory values." });
   }
 
-  await db.collection("inventory").updateOne(
-    { _id: id },
-    { $set: { name, category, quantity, minimumStock, price, unit, unitCost, supplier, ...(req.body.imageUrl !== undefined ? { imageUrl: imageValue(req.body.imageUrl) } : {}), updatedAt: new Date() } }
-  );
+  try {
+    await inventoryTransaction(req, async session => {
+      // Reject stale form submissions instead of overwriting a more recent stock movement.
+      const result = await db.collection("inventory").updateOne(
+        { _id: id, quantity: current.quantity, updatedAt: current.updatedAt },
+        { $set: { name, category, quantity, minimumStock, price, unit, unitCost, supplier, ...(req.body.imageUrl !== undefined ? { imageUrl: imageValue(req.body.imageUrl) } : {}), updatedAt: new Date() } },
+        { session }
+      );
+      if (!result.matchedCount) throw inventoryError("Inventory changed since this page was opened. Refresh before saving.");
+      await db.collection("inventoryEvents").insertOne({
+        inventoryId: id, type: "updated", quantityChange: quantity - current.quantity, createdAt: new Date()
+      }, { session });
+    });
+  } catch (error) { return transactionFailure(res, error); }
 
-  await db.collection("inventoryEvents").insertOne({
-    inventoryId: id,
-    type: "updated",
-    quantityChange: quantity - current.quantity,
-    createdAt: new Date()
-  });
-
-  await audit(req, "inventory.updated", { product: name, quantityBefore: current.quantity, quantityAfter: quantity, price });
+  try { await audit(req, "inventory.updated", { product: name, quantityBefore: current.quantity, quantityAfter: quantity, price }); } catch (error) { console.error("Inventory audit failed:", error.message); }
   res.json({ message: "Inventory updated." });
 });
 
@@ -120,17 +147,19 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const db = req.app.locals.db;
   if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: "Invalid product ID." });
   const id = new ObjectId(req.params.id);
-  const current = await db.collection("inventory").findOneAndDelete({ _id: id });
-  if (!current) return res.status(404).json({ error: "Product not found." });
+  let current;
+  try {
+    current = await inventoryTransaction(req, async session => {
+      const deleted = await db.collection("inventory").findOneAndDelete({ _id: id }, { session });
+      if (!deleted) throw inventoryError("Product not found.", 404);
+      await db.collection("inventoryEvents").insertOne({
+        inventoryId: id, type: "deleted", quantityChange: -deleted.quantity, createdAt: new Date()
+      }, { session });
+      return deleted;
+    });
+  } catch (error) { return transactionFailure(res, error); }
 
-  await db.collection("inventoryEvents").insertOne({
-    inventoryId: id,
-    type: "deleted",
-    quantityChange: -current.quantity,
-    createdAt: new Date()
-  });
-
-  await audit(req, "inventory.deleted", { product: current.name, quantity: current.quantity });
+  try { await audit(req, "inventory.deleted", { product: current.name, quantity: current.quantity }); } catch (error) { console.error("Inventory audit failed:", error.message); }
   res.json({ message: "Inventory item deleted." });
 });
 
@@ -148,10 +177,21 @@ router.post("/:id/stock", requireAuth, requireRole("admin"), async (req, res) =>
   if (direction === "out" && !reason) return res.status(400).json({ error: "Enter a reason for stock out." });
   const delta = direction === "in" ? amount : -amount;
   const filter = { _id: id, active: { $ne: false }, ...(delta < 0 ? { quantity: { $gte: amount } } : {}) };
-  const previous = await db.collection("inventory").findOneAndUpdate(filter, { $inc: { quantity: delta }, $set: { updatedAt: new Date() } }, { returnDocument: "before" });
-  if (!previous) return res.status(409).json({ error: "Product is archived, missing, or has insufficient stock." });
-  await db.collection("inventoryEvents").insertOne({ inventoryId: id, type: direction === "in" ? "stock-in" : "stock-out", quantityChange: delta, reason, actorName: req.user.name || "Admin", createdAt: new Date() });
-  await audit(req, direction === "in" ? "inventory.stock-in" : "inventory.stock-out", { product: previous.name, quantityBefore: previous.quantity, quantityAfter: previous.quantity + delta, reason });
+  let previous;
+  try {
+    previous = await inventoryTransaction(req, async session => {
+      const old = await db.collection("inventory").findOneAndUpdate(filter,
+        { $inc: { quantity: delta }, $set: { updatedAt: new Date() } },
+        { returnDocument: "before", session });
+      if (!old) throw inventoryError("Product is archived, missing, or has insufficient stock.");
+      await db.collection("inventoryEvents").insertOne({
+        inventoryId: id, type: direction === "in" ? "stock-in" : "stock-out",
+        quantityChange: delta, reason, actorName: req.user.name || "Admin", createdAt: new Date()
+      }, { session });
+      return old;
+    });
+  } catch (error) { return transactionFailure(res, error); }
+  try { await audit(req, direction === "in" ? "inventory.stock-in" : "inventory.stock-out", { product: previous.name, quantityBefore: previous.quantity, quantityAfter: previous.quantity + delta, reason }); } catch (error) { console.error("Inventory audit failed:", error.message); }
   res.json({ message: "Stock updated.", quantity: previous.quantity + delta });
 });
 
@@ -166,11 +206,23 @@ router.patch("/:id/archive", requireAuth, requireRole("admin"), async (req, res)
     return res.status(400).json({ error: "Invalid archive request." });
   const db = req.app.locals.db;
   const id = new ObjectId(req.params.id);
-  const product = await db.collection("inventory").findOneAndUpdate({ _id: id }, { $set: { active: req.body.active, updatedAt: new Date() } }, { returnDocument: "before" });
-  if (!product) return res.status(404).json({ error: "Product not found." });
+  let product;
+  try {
+    product = await inventoryTransaction(req, async session => {
+      const old = await db.collection("inventory").findOneAndUpdate(
+        { _id: id }, { $set: { active: req.body.active, updatedAt: new Date() } },
+        { returnDocument: "before", session });
+      if (!old) throw inventoryError("Product not found.", 404);
+      if (old.active !== req.body.active) {
+        await db.collection("inventoryEvents").insertOne({ inventoryId: id,
+          type: req.body.active ? "restored" : "archived", quantityChange: 0,
+          actorName: req.user.name || "Admin", createdAt: new Date() }, { session });
+      }
+      return old;
+    });
+  } catch (error) { return transactionFailure(res, error); }
   if (product.active !== req.body.active) {
-    await db.collection("inventoryEvents").insertOne({ inventoryId: id, type: req.body.active ? "restored" : "archived", quantityChange: 0, actorName: req.user.name || "Admin", createdAt: new Date() });
-    await audit(req, req.body.active ? "inventory.restored" : "inventory.archived", { product: product.name });
+    try { await audit(req, req.body.active ? "inventory.restored" : "inventory.archived", { product: product.name }); } catch (error) { console.error("Inventory audit failed:", error.message); }
   }
   res.json({ message: req.body.active ? "Product restored." : "Product archived." });
 });
