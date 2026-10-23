@@ -115,8 +115,47 @@
 @media(max-width:600px){.landing-services .landing-service-carousel{gap:8px}.landing-services .landing-service-arrow{width:34px;height:34px;flex-basis:34px}.landing-services .landing-service-viewport .landing-tiles{gap:12px}.landing-services .landing-service-card{flex-basis:100%}.landing-services .landing-service-card img{height:220px}.landing-services .landing-service-info{padding:17px}}
 @media(prefers-reduced-motion:reduce){.landing-services .landing-service-viewport{scroll-behavior:auto}.landing-services .landing-service-arrow{transition:none}}
 
-/* Decorative gold scissors on the Services background (existing landingpage asset). */
+/* Decorative gold scissors scattered across the Services background. */
 .landing-services{position:relative;isolation:isolate;overflow:hidden}
-.landing-services::before{content:"";position:absolute;right:-45px;bottom:3%;width:clamp(260px,32vw,480px);aspect-ratio:1;background:url("/images/landingpage/gunting.png") center/contain no-repeat;opacity:.17;pointer-events:none;z-index:-1}
+.landing-services::before,.landing-services::after{content:"";position:absolute;inset:0;pointer-events:none}
+.landing-services::before{
+  z-index:0;
+  opacity:.13;
+  background-image:
+    url("/images/landingpage/gunting.png"),
+    url("/images/landingpage/gunting.png"),
+    url("/images/landingpage/gunting.png"),
+    url("/images/landingpage/gunting.png"),
+    url("/images/landingpage/gunting.png");
+  background-repeat:no-repeat;
+  background-size:150px auto,130px auto,150px auto,135px auto,170px auto;
+  background-position:
+    left 18px top 34px,
+    center top 16px,
+    right 18px top 62px,
+    left 26px bottom 28px,
+    center 52% bottom 18px;
+}
+.landing-services::after{
+  z-index:0;
+  opacity:.16;
+  background:url("/images/landingpage/gunting.png") right -42px bottom 28px / clamp(250px,31vw,470px) auto no-repeat;
+}
 .landing-services>.landing-heading,.landing-services>.landing-service-carousel,.landing-services>.landing-outline{position:relative;z-index:1}
-@media(max-width:700px){.landing-services::before{right:-100px;bottom:1%;width:310px;opacity:.1}}
+@media(max-width:900px){
+  .landing-services::before{
+    background-size:110px auto,96px auto,112px auto,102px auto,126px auto;
+    background-position:left 12px top 54px,center top 24px,right 12px top 96px,left 10px bottom 32px,center 58% bottom 16px;
+    opacity:.1;
+  }
+  .landing-services::after{background-position:right -50px bottom 20px;background-size:230px auto;opacity:.12}
+}
+@media(max-width:700px){
+  .landing-services::before{
+    background-image:url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png");
+    background-size:88px auto,88px auto,102px auto;
+    background-position:left -8px top 88px,right -6px top 118px,center bottom 34px;
+    opacity:.08;
+  }
+  .landing-services::after{background-size:165px auto;background-position:right -58px bottom 30px;opacity:.09}
+}
