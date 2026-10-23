@@ -115,63 +115,8 @@
 @media(max-width:600px){.landing-services .landing-service-carousel{gap:8px}.landing-services .landing-service-arrow{width:34px;height:34px;flex-basis:34px}.landing-services .landing-service-viewport .landing-tiles{gap:12px}.landing-services .landing-service-card{flex-basis:100%}.landing-services .landing-service-card img{height:220px}.landing-services .landing-service-info{padding:17px}}
 @media(prefers-reduced-motion:reduce){.landing-services .landing-service-viewport{scroll-behavior:auto}.landing-services .landing-service-arrow{transition:none}}
 
-/* Spread small gold scissors throughout the Services section without changing its cards. */
+/* Decorative gold scissors on the Services background (existing landingpage asset). */
 .landing-services{position:relative;isolation:isolate;overflow:hidden}
-.landing-services::before,.landing-services::after{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-repeat:no-repeat;
-}
-/* Distinct positions across the upper, middle, and lower areas (not clustered at edges). */
-.landing-services::before{
-  opacity:.16;
-  background-image:
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png");
-  background-size:130px auto,108px auto,125px auto,112px auto,120px auto,105px auto;
-  background-position:
-    3% 9%,
-    27% 4%,
-    71% 7%,
-    96% 20%,
-    5% 58%,
-    94% 63%;
-}
-.landing-services::after{
-  opacity:.14;
-  background-image:
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png"),
-    url("/images/landingpage/gunting.png");
-  background-size:110px auto,125px auto,115px auto,115px auto,135px auto;
-  background-position:
-    12% 34%,
-    88% 39%,
-    24% 93%,
-    55% 95%,
-    84% 93%;
-}
+.landing-services::before{content:"";position:absolute;right:-45px;bottom:3%;width:clamp(260px,32vw,480px);aspect-ratio:1;background:url("/images/landingpage/gunting.png") center/contain no-repeat;opacity:.17;pointer-events:none;z-index:-1}
 .landing-services>.landing-heading,.landing-services>.landing-service-carousel,.landing-services>.landing-outline{position:relative;z-index:1}
-@media(max-width:900px){
-  .landing-services::before{opacity:.12;background-size:90px auto,80px auto,90px auto,80px auto,95px auto,85px auto}
-  .landing-services::after{opacity:.12;background-size:85px auto,90px auto,85px auto,85px auto,95px auto}
-}
-@media(max-width:700px){
-  .landing-services::before{
-    opacity:.10;
-    background-image:url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png");
-    background-size:78px auto,75px auto,86px auto;
-    background-position:4% 9%,96% 29%,6% 69%;
-  }
-  .landing-services::after{
-    opacity:.10;
-    background-image:url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png"),url("/images/landingpage/gunting.png");
-    background-size:85px auto,82px auto,92px auto;
-    background-position:95% 55%,30% 92%,90% 94%;
-  }
-}
+@media(max-width:700px){.landing-services::before{right:-100px;bottom:1%;width:310px;opacity:.1}}
