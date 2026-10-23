@@ -87,3 +87,30 @@
 @media(max-width:900px){.landing-services .landing-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.landing-services .landing-tiles{grid-template-columns:1fr;gap:18px}.landing-services .landing-service-card img{height:235px}.landing-services .landing-service-info{padding:20px}}
 @media(prefers-reduced-motion:reduce){.landing-services .landing-service-card{transition:none}.landing-services .landing-service-card:hover{transform:none}}
+
+/* Match the warm beige background of the final call-to-action section.
+   Let the section color span the full viewport while keeping the cards aligned. */
+.landing-services{max-width:none;background:#e8d7bd}
+.landing-services>.landing-heading,.landing-services>.landing-tiles{max-width:1233px;margin-left:auto;margin-right:auto}
+
+/* Services carousel: compact cards, one row, same full-width warm beige background. */
+.landing-services .landing-service-carousel{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:14px;min-width:0}
+.landing-services .landing-service-viewport{min-width:0;flex:1 1 auto;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth;overscroll-behavior-x:contain;border-radius:16px}
+.landing-services .landing-service-viewport::-webkit-scrollbar{display:none}
+.landing-services .landing-service-viewport:focus-visible{outline:3px solid #987039;outline-offset:3px}
+.landing-services .landing-service-viewport .landing-tiles{display:flex;flex-wrap:nowrap;gap:18px;max-width:none;margin:0;align-items:stretch}
+.landing-services .landing-service-card{flex:0 0 calc((100% - 36px)/3);scroll-snap-align:start;scroll-snap-stop:always;min-width:0}
+.landing-services .landing-service-card img{height:205px}
+.landing-services .landing-service-info{padding:18px 20px 20px}
+.landing-services .landing-service-info h3{font-size:24px;margin:9px 0 13px}
+.landing-services .landing-service-details{padding-top:12px}
+.landing-services .landing-service-arrow{appearance:none;flex:0 0 43px;width:43px;height:43px;display:flex;align-items:center;justify-content:center;background:#fff;color:#72542b;border:1px solid #d1b98f;border-radius:50%;box-shadow:0 4px 14px #00000012;cursor:pointer;transition:background .2s,transform .2s}
+.landing-services .landing-service-arrow:hover:not(:disabled){background:#fff9ef;transform:translateY(-2px)}
+.landing-services .landing-service-arrow:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.landing-services .landing-service-arrow[hidden]{visibility:hidden;display:flex}
+.landing-services .landing-service-arrow:focus-visible{outline:3px solid #a47e45;outline-offset:3px}
+.landing-services .landing-service-arrow svg{width:18px;height:18px;flex-shrink:0}
+.landing-services .landing-services-message{flex:1 0 100%}
+@media(max-width:900px){.landing-services .landing-service-card{flex-basis:calc((100% - 18px)/2)}}
+@media(max-width:600px){.landing-services .landing-service-carousel{gap:8px}.landing-services .landing-service-arrow{width:34px;height:34px;flex-basis:34px}.landing-services .landing-service-viewport .landing-tiles{gap:12px}.landing-services .landing-service-card{flex-basis:100%}.landing-services .landing-service-card img{height:220px}.landing-services .landing-service-info{padding:17px}}
+@media(prefers-reduced-motion:reduce){.landing-services .landing-service-viewport{scroll-behavior:auto}.landing-services .landing-service-arrow{transition:none}}

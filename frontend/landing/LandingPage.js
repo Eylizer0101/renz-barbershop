@@ -8,6 +8,52 @@
   // Public services use the same active records and uploaded photos as Admin Services.
   // The public API already filters archived services; no authentication is needed.
   const serviceTiles = document.querySelector("#landingServiceTiles");
+  // Keep every active service in one horizontal row; show three cards at a time on desktop.
+  const serviceViewport = document.createElement("div");
+  serviceViewport.className = "landing-service-viewport";
+  serviceViewport.setAttribute("role", "region");
+  serviceViewport.setAttribute("aria-label", "Available barbershop services");
+  serviceViewport.setAttribute("tabindex", "0");
+  const serviceCarousel = document.createElement("div");
+  serviceCarousel.className = "landing-service-carousel";
+  const previousService = document.createElement("button");
+  const nextService = document.createElement("button");
+  const serviceArrows = [
+    [previousService, "previous", "Previous services", "M15 19l-7-7 7-7"],
+    [nextService, "next", "Next services", "M9 5l7 7-7 7"]
+  ];
+  serviceArrows.forEach(([button, direction, label, path]) => {
+    button.type = "button";
+    button.className = `landing-service-arrow landing-service-arrow-${direction}`;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-controls", "landingServiceTiles");
+    button.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${path}"/></svg>`;
+  });
+  serviceTiles.parentNode.insertBefore(serviceCarousel, serviceTiles);
+  serviceViewport.appendChild(serviceTiles);
+  serviceCarousel.append(previousService, serviceViewport, nextService);
+
+  function updateServiceArrows() {
+    const maxScroll = Math.max(0, serviceViewport.scrollWidth - serviceViewport.clientWidth);
+    const hasOverflow = maxScroll > 2;
+    previousService.hidden = !hasOverflow;
+    nextService.hidden = !hasOverflow;
+    previousService.disabled = serviceViewport.scrollLeft <= 2;
+    nextService.disabled = serviceViewport.scrollLeft >= maxScroll - 2;
+  }
+  function moveServices(direction) {
+    const first = serviceTiles.querySelector(".landing-service-card");
+    if (!first) return;
+    const gap = parseFloat(getComputedStyle(serviceTiles).columnGap) || 0;
+    serviceViewport.scrollBy({ left: direction * (first.getBoundingClientRect().width + gap), behavior: "smooth" });
+  }
+  previousService.addEventListener("click", () => moveServices(-1));
+  nextService.addEventListener("click", () => moveServices(1));
+  serviceViewport.addEventListener("scroll", updateServiceArrows, { passive: true });
+  window.addEventListener("resize", updateServiceArrows);
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(updateServiceArrows).observe(serviceViewport);
+  }
   const serviceFallback = "/images/landingpage/2.png";
   const formatPrice = value => new Intl.NumberFormat("en-PH", {
     style: "currency", currency: "PHP", minimumFractionDigits: 2
@@ -22,12 +68,13 @@
   };
   function renderPublicServices(services) {
     serviceTiles.replaceChildren();
-    const active = Array.isArray(services) ? services.filter(item => item && item.active !== false).slice(0, 6) : [];
+    const active = Array.isArray(services) ? services.filter(item => item && item.active !== false) : [];
     if (!active.length) {
       const empty = document.createElement("p");
       empty.className = "landing-services-message";
       empty.textContent = "No services available at the moment. Please check back soon.";
       serviceTiles.appendChild(empty);
+      updateServiceArrows();
       return;
     }
     active.forEach((service, index) => {
@@ -59,6 +106,8 @@
       article.append(img, info);
       serviceTiles.appendChild(article);
     });
+    serviceViewport.scrollLeft = 0;
+    updateServiceArrows();
   }
   async function loadPublicServices() {
     try {
@@ -71,6 +120,7 @@
       message.className = "landing-services-message";
       message.textContent = "Services couldn't be loaded. Please refresh the page to try again.";
       serviceTiles.appendChild(message);
+      updateServiceArrows();
       console.error("Failed to load landing services:", error);
     } finally {
       serviceTiles.setAttribute("aria-busy", "false");
