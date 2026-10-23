@@ -2,8 +2,81 @@
 // The existing router loads this page for / and /index.html.
 (function () {
   "use strict";
-  document.body.innerHTML = "<header class=\"landing-nav\"><a class=\"landing-logo\" href=\"/\" aria-label=\"Renz Barbershop Home\"><span class=\"landing-scissors\"><img src=\"/images/GoldenScissors.png\" alt=\"\" aria-hidden=\"true\" decoding=\"async\"></span><span><strong>RENZ</strong><small>BARBERSHOP</small></span></a><nav aria-label=\"Main navigation\"><a href=\"#home\">Home</a><a href=\"#services\">Services</a><a href=\"#about\">About Us</a><a href=\"#gallery\">Gallery</a></nav><div class=\"landing-auth\"><a class=\"landing-register\" href=\"/login.html#register\">Register</a><a class=\"landing-login\" href=\"/login.html#signin\">Log In</a></div></header><main id=\"home\"><section class=\"landing-hero\"><div class=\"landing-copy\"><div class=\"landing-kicker\">WELCOME TO RENZ BARBERSHOP</div><h1>Fresh Cut.<br><em>Fresh Confidence.</em></h1><p>Great haircuts, good vibes, and a style that feels like you. Your style. Your turn. Your time.</p><div class=\"landing-actions\"><a href=\"/login.html\" data-landing-auth-modal>Book Your Cut <span aria-hidden=\"true\">→</span></a><a href=\"#services\">Explore Services</a></div><div class=\"landing-highlights\"><span>✦ Quality Haircuts</span><span>✦ Skilled Barbers</span><span>✦ Easy Booking</span></div></div><div class=\"landing-hero-photo\"><img src=\"/images/landingpage/1.png\" alt=\"Barber giving a fresh haircut\"/></div></section><section id=\"services\" class=\"landing-section landing-services\"><div class=\"landing-heading\"><span>WHAT WE DO</span><h2>Your next great look starts here.</h2><p>From a clean trim to a fresh new style, we've got you covered.</p></div><div class=\"landing-tiles\"><article><img src=\"/images/landingpage/2.png\" alt=\"Barbershop service showcase\"><div><span>01 / PRECISION</span><h3>Classic Cuts</h3><p>Sharp, clean, and timeless looks.</p></div></article><article><img src=\"/images/landingpage/3.png\" alt=\"Modern haircut showcase\"><div><span>02 / YOUR STYLE</span><h3>Modern Styles</h3><p>Fresh cuts made for your personality.</p></div></article><article><img src=\"/images/landingpage/4.png\" alt=\"Barbershop grooming showcase\"><div><span>03 / DETAILS</span><h3>Grooming</h3><p>It's the little details that count.</p></div></article></div><a class=\"landing-outline\" href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section><section id=\"about\" class=\"landing-about\"><div class=\"landing-about-image\"><img src=\"/images/landingpage/1.png\" alt=\"Inside Renz Barbershop\"></div><div><span class=\"landing-kicker\">MORE THAN JUST A HAIRCUT</span><h2>Look good.<br>Feel even better.</h2><p>At Renz Barbershop, every visit is about finding the look that fits you. Enjoy a welcoming space, dedicated barbers, and a simple way to plan your next visit.</p><a href=\"/login.html#register\" data-landing-auth-modal>Join Renz Barbershop →</a></div></section><section id=\"gallery\" class=\"landing-section landing-gallery\"><div class=\"landing-heading\"><span>OUR GALLERY</span><h2>Style inspiration</h2><p>Find your next look and make it your own.</p></div><div class=\"landing-gallery-grid\"><img src=\"/images/landingpage/2.png\" alt=\"Haircut gallery photo one\"><img src=\"/images/landingpage/3.png\" alt=\"Haircut gallery photo two\"><img src=\"/images/landingpage/4.png\" alt=\"Haircut gallery photo three\"></div></section><section class=\"landing-cta\"><span>READY FOR A FRESH LOOK?</span><h2>Your chair is waiting.</h2><p>Start your next barbershop visit with Renz.</p><a href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section></main><footer class=\"landing-footer\"><strong><img class=\"landing-footer-scissors\" src=\"/images/GoldenScissors.png\" alt=\"\" aria-hidden=\"true\"> RENZ BARBERSHOP</strong><small>© 2026 Renz Barbershop</small></footer>";
+  document.body.innerHTML = "<header class=\"landing-nav\"><a class=\"landing-logo\" href=\"/\" aria-label=\"Renz Barbershop Home\"><span class=\"landing-scissors\"><img src=\"/images/GoldenScissors.png\" alt=\"\" aria-hidden=\"true\" decoding=\"async\"></span><span><strong>RENZ</strong><small>BARBERSHOP</small></span></a><nav aria-label=\"Main navigation\"><a href=\"#home\">Home</a><a href=\"#services\">Services</a><a href=\"#about\">About Us</a></nav><div class=\"landing-auth\"><a class=\"landing-register\" href=\"/login.html#register\">Register</a><a class=\"landing-login\" href=\"/login.html#signin\">Log In</a></div></header><main id=\"home\"><section class=\"landing-hero\"><div class=\"landing-copy\"><div class=\"landing-kicker\">WELCOME TO RENZ BARBERSHOP</div><h1>Fresh Cut.<br><em>Fresh Confidence.</em></h1><p>Great haircuts, good vibes, and a style that feels like you. Your style. Your turn. Your time.</p><div class=\"landing-actions\"><a href=\"/login.html\" data-landing-auth-modal>Book Your Cut <span aria-hidden=\"true\">→</span></a><a href=\"#services\">Explore Services</a></div><div class=\"landing-highlights\"><span>✦ Quality Haircuts</span><span>✦ Skilled Barbers</span><span>✦ Easy Booking</span></div></div><div class=\"landing-hero-photo\"><img src=\"/images/landingpage/1.png\" alt=\"Barber giving a fresh haircut\"/></div></section><section id=\"services\" class=\"landing-section landing-services\"><div class=\"landing-heading\"><span>WHAT WE DO</span><h2>Your next great look starts here.</h2><p>From a clean trim to a fresh new style, we've got you covered.</p></div><div class=\"landing-tiles\" id=\"landingServiceTiles\" aria-live=\"polite\" aria-busy=\"true\"><p class=\"landing-services-message\">Loading services...</p></div><a class=\"landing-outline\" href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section><section id=\"about\" class=\"landing-about\"><div class=\"landing-about-image\"><img src=\"/images/landingpage/1.png\" alt=\"Inside Renz Barbershop\"></div><div><span class=\"landing-kicker\">MORE THAN JUST A HAIRCUT</span><h2>Look good.<br>Feel even better.</h2><p>At Renz Barbershop, every visit is about finding the look that fits you. Enjoy a welcoming space, dedicated barbers, and a simple way to plan your next visit.</p><a href=\"/login.html#register\" data-landing-auth-modal>Join Renz Barbershop →</a></div></section><section class=\"landing-cta\"><span>READY FOR A FRESH LOOK?</span><h2>Your chair is waiting.</h2><p>Start your next barbershop visit with Renz.</p><a href=\"/login.html\" data-landing-auth-modal>Get Started →</a></section></main><footer class=\"landing-footer\"><strong><img class=\"landing-footer-scissors\" src=\"/images/GoldenScissors.png\" alt=\"\" aria-hidden=\"true\"> RENZ BARBERSHOP</strong><small>© 2026 Renz Barbershop</small></footer>";
 
+
+  // Public services use the same active records and uploaded photos as Admin Services.
+  // The public API already filters archived services; no authentication is needed.
+  const serviceTiles = document.querySelector("#landingServiceTiles");
+  const serviceFallback = "/images/landingpage/2.png";
+  const formatPrice = value => new Intl.NumberFormat("en-PH", {
+    style: "currency", currency: "PHP", minimumFractionDigits: 2
+  }).format(Number(value) || 0);
+  const safeServiceImage = value => {
+    if (typeof value !== "string") return serviceFallback;
+    const url = value.trim();
+    if (/^\/api\/services\/images\/[a-f0-9]{24}$/i.test(url) ||
+        /^\/images\/[a-z0-9._/-]+$/i.test(url) ||
+        /^https:\/\/[^\s]+$/i.test(url)) return url;
+    return serviceFallback;
+  };
+  function renderPublicServices(services) {
+    serviceTiles.replaceChildren();
+    const active = Array.isArray(services) ? services.filter(item => item && item.active !== false).slice(0, 6) : [];
+    if (!active.length) {
+      const empty = document.createElement("p");
+      empty.className = "landing-services-message";
+      empty.textContent = "No services available at the moment. Please check back soon.";
+      serviceTiles.appendChild(empty);
+      return;
+    }
+    active.forEach((service, index) => {
+      const article = document.createElement("article");
+      article.className = "landing-service-card";
+      const img = document.createElement("img");
+      img.src = safeServiceImage(service.imageUrl);
+      img.alt = `${String(service.name || "Barbershop service")} service photo`;
+      img.loading = index < 3 ? "eager" : "lazy";
+      img.decoding = "async";
+      img.addEventListener("error", () => {
+        if (!img.src.endsWith(serviceFallback)) img.src = serviceFallback;
+      });
+      const info = document.createElement("div");
+      info.className = "landing-service-info";
+      const kicker = document.createElement("span");
+      kicker.className = "landing-service-number";
+      kicker.textContent = `SERVICE ${String(index + 1).padStart(2, "0")}`;
+      const title = document.createElement("h3");
+      title.textContent = String(service.name || "Barbershop Service");
+      const details = document.createElement("div");
+      details.className = "landing-service-details";
+      const price = document.createElement("strong");
+      price.textContent = formatPrice(service.price);
+      const duration = document.createElement("span");
+      duration.textContent = `${Number(service.durationMinutes) || 0} min`;
+      details.append(price, duration);
+      info.append(kicker, title, details);
+      article.append(img, info);
+      serviceTiles.appendChild(article);
+    });
+  }
+  async function loadPublicServices() {
+    try {
+      const response = await fetch("/api/services", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) throw new Error("Services request failed");
+      renderPublicServices(await response.json());
+    } catch (error) {
+      serviceTiles.replaceChildren();
+      const message = document.createElement("p");
+      message.className = "landing-services-message";
+      message.textContent = "Services couldn't be loaded. Please refresh the page to try again.";
+      serviceTiles.appendChild(message);
+      console.error("Failed to load landing services:", error);
+    } finally {
+      serviceTiles.setAttribute("aria-busy", "false");
+    }
+  }
+  loadPublicServices();
 
   // Mobile landing navigation: keep the desktop navigation intact.
   const landingHeader = document.querySelector(".landing-nav");
