@@ -114,3 +114,9 @@
 @media(max-width:900px){.landing-services .landing-service-card{flex-basis:calc((100% - 18px)/2)}}
 @media(max-width:600px){.landing-services .landing-service-carousel{gap:8px}.landing-services .landing-service-arrow{width:34px;height:34px;flex-basis:34px}.landing-services .landing-service-viewport .landing-tiles{gap:12px}.landing-services .landing-service-card{flex-basis:100%}.landing-services .landing-service-card img{height:220px}.landing-services .landing-service-info{padding:17px}}
 @media(prefers-reduced-motion:reduce){.landing-services .landing-service-viewport{scroll-behavior:auto}.landing-services .landing-service-arrow{transition:none}}
+
+/* Decorative gold scissors on the Services background (existing landingpage asset). */
+.landing-services{position:relative;isolation:isolate;overflow:hidden}
+.landing-services::before{content:"";position:absolute;right:-45px;bottom:3%;width:clamp(260px,32vw,480px);aspect-ratio:1;background:url("/images/landingpage/gunting.png") center/contain no-repeat;opacity:.17;pointer-events:none;z-index:-1}
+.landing-services>.landing-heading,.landing-services>.landing-service-carousel,.landing-services>.landing-outline{position:relative;z-index:1}
+@media(max-width:700px){.landing-services::before{right:-100px;bottom:1%;width:310px;opacity:.1}}
