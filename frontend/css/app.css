@@ -4364,3 +4364,41 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .analytics-export-eye:hover { color:#533a23; background:#f8f3eb; }
 .analytics-export-footer { margin-top:7px; }
 @media(max-width:600px) { .analytics-dashboard .analytics-heading-copy .analytics-export-btn { width:auto; max-width:100%; } .analytics-export-modal { padding:19px; } }
+
+/* Align Export All Records on the SAME baseline as All Customer Types.
+   Keep filters together and use the whole second row of the analytics card. */
+.analytics-dashboard .analytics-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.analytics-dashboard .analytics-header-actions > .analytics-export-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  min-height: 39px;
+}
+@media (min-width: 1201px) {
+  .analytics-dashboard .analytics-heading {
+    grid-template-areas: "total welcome" "actions actions";
+    grid-template-rows: auto auto;
+  }
+  .analytics-dashboard .analytics-header-actions {
+    grid-area: actions;
+    align-self: center;
+  }
+}
+@media (min-width: 851px) and (max-width: 1200px) {
+  .analytics-dashboard .analytics-header-actions {
+    align-self: center;
+  }
+}
+@media (max-width: 850px) {
+  .analytics-dashboard .analytics-header-actions { gap: 10px; }
+}
+@media (max-width: 600px) {
+  .analytics-dashboard .analytics-header-actions > .analytics-export-btn {
+    width: auto;
+    max-width: 100%;
+  }
+}
