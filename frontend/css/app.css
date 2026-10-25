@@ -4365,87 +4365,57 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .analytics-export-footer { margin-top:7px; }
 @media(max-width:600px) { .analytics-dashboard .analytics-heading-copy .analytics-export-btn { width:auto; max-width:100%; } .analytics-export-modal { padding:19px; } }
 
-/* Align Export All Records on the SAME baseline as All Customer Types.
-   Keep filters together and use the whole second row of the analytics card. */
-.analytics-dashboard .analytics-header-actions {
+
+/* Admin Analytics — export on the title row, four filters together below.
+   Scoped overrides preserve the existing welcome card, modal and other pages. */
+.analytics-dashboard .analytics-heading-copy {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
 }
-.analytics-dashboard .analytics-header-actions > .analytics-export-btn {
+.analytics-dashboard .analytics-heading-copy > .analytics-export-btn {
   flex: 0 0 auto;
-  margin: 0;
+  margin: 0 0 0 auto;
+  width: 179px;
   min-height: 39px;
 }
-@media (min-width: 1201px) {
+.analytics-dashboard .analytics-header-actions {
+  width: 100%;
+  min-width: 0;
+}
+.analytics-dashboard .analytics-header-actions .analytics-header-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+@media (min-width: 851px) {
   .analytics-dashboard .analytics-heading {
     grid-template-areas: "total welcome" "actions actions";
     grid-template-rows: auto auto;
+    row-gap: 9px;
+    padding: 14px 22px;
   }
-  .analytics-dashboard .analytics-header-actions {
-    grid-area: actions;
-    align-self: center;
+  .analytics-dashboard .analytics-header-actions .analytics-header-filters {
+    flex-wrap: nowrap;
   }
 }
-@media (min-width: 851px) and (max-width: 1200px) {
-  .analytics-dashboard .analytics-header-actions {
-    align-self: center;
-  }
+@media (max-width: 1150px) and (min-width: 851px) {
+  .analytics-dashboard .analytics-heading-copy { align-self: center; }
 }
 @media (max-width: 850px) {
-  .analytics-dashboard .analytics-header-actions { gap: 10px; }
+  .analytics-dashboard .analytics-heading {
+    grid-template-areas: "total" "actions" "welcome";
+  }
+  .analytics-dashboard .analytics-header-actions .analytics-header-filters { flex-wrap: wrap; }
 }
-@media (max-width: 600px) {
-  .analytics-dashboard .analytics-header-actions > .analytics-export-btn {
-    width: auto;
+@media (max-width: 480px) {
+  .analytics-dashboard .analytics-heading-copy > .analytics-export-btn {
+    width: 179px;
     max-width: 100%;
-  }
-}
-
-
-/* Final Export All Records placement fix:
-   put the button above All Customer Types and keep both the same width. */
-.analytics-dashboard .analytics-header-actions {
-  align-self: stretch;
-}
-.analytics-dashboard .analytics-header-actions-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 14px;
-  width: 100%;
-}
-.analytics-dashboard .analytics-header-filters {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.analytics-dashboard .analytics-export-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  flex: 0 0 190px;
-  width: 190px;
-}
-.analytics-dashboard .analytics-export-stack > * {
-  width: 100%;
-  margin: 0;
-}
-.analytics-dashboard .analytics-export-stack .analytics-export-btn {
-  min-height: 39px;
-  justify-content: center;
-}
-.analytics-dashboard .analytics-customer-type-filter,
-.analytics-dashboard .analytics-customer-type-filter select {
-  width: 100%;
-}
-@media (max-width: 980px) {
-  .analytics-dashboard .analytics-header-actions-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .analytics-dashboard .analytics-export-stack {
-    width: 100%;
-    flex-basis: auto;
   }
 }
