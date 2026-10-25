@@ -4402,3 +4402,50 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
     max-width: 100%;
   }
 }
+
+
+/* Final Export All Records placement fix:
+   put the button above All Customer Types and keep both the same width. */
+.analytics-dashboard .analytics-header-actions {
+  align-self: stretch;
+}
+.analytics-dashboard .analytics-header-actions-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+}
+.analytics-dashboard .analytics-header-filters {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.analytics-dashboard .analytics-export-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 0 0 190px;
+  width: 190px;
+}
+.analytics-dashboard .analytics-export-stack > * {
+  width: 100%;
+  margin: 0;
+}
+.analytics-dashboard .analytics-export-stack .analytics-export-btn {
+  min-height: 39px;
+  justify-content: center;
+}
+.analytics-dashboard .analytics-customer-type-filter,
+.analytics-dashboard .analytics-customer-type-filter select {
+  width: 100%;
+}
+@media (max-width: 980px) {
+  .analytics-dashboard .analytics-header-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .analytics-dashboard .analytics-export-stack {
+    width: 100%;
+    flex-basis: auto;
+  }
+}
