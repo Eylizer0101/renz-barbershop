@@ -4419,3 +4419,36 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
     max-width: 100%;
   }
 }
+
+/* Admin Analytics: retain the welcome card's original centered position.
+   The left column holds Total Customers + Export, then the four filters;
+   the welcome panel spans both rows instead of floating above them. */
+@media (min-width: 1201px) {
+  .analytics-dashboard .analytics-heading {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 390px);
+    grid-template-areas: "total welcome" "actions welcome";
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 18px;
+    row-gap: 8px;
+    padding: 14px 22px;
+  }
+  .analytics-dashboard .analytics-heading-copy {
+    grid-area: total;
+    align-self: end;
+    flex-wrap: nowrap;
+  }
+  .analytics-dashboard .analytics-header-actions {
+    grid-area: actions;
+    align-self: start;
+  }
+  .analytics-dashboard .analytics-welcome-card {
+    grid-area: welcome;
+    align-self: center;
+  }
+  .analytics-dashboard .analytics-header-actions .analytics-header-filters {
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+  }
+}
