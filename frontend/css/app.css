@@ -4323,3 +4323,28 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 #appointmentsPage .appointment-remove-history-btn:hover{background:#fdeceb;border-color:#d8a19a;}
 #appointmentsPage .appointment-remove-history-btn:disabled{opacity:.6;cursor:wait;}
 #appointmentsPage .appointment-remove-history-btn svg{flex-shrink:0;}
+
+/* Password-protected admin Excel export */
+.analytics-total-line { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.analytics-export-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:#86653e; color:white; border:1px solid #86653e; padding:10px 14px; border-radius:9px; font-size:12px; font-weight:700; min-height:39px; white-space:nowrap; transition:background .2s, transform .2s; }
+.analytics-export-btn:hover { background:#61472c; transform:translateY(-1px); }
+.analytics-export-backdrop { position:fixed; inset:0; z-index:10000; background:rgba(17,20,19,.62); display:flex; align-items:center; justify-content:center; padding:18px; }
+.analytics-export-modal { background:#fff; border:1px solid #e8ddcf; border-radius:17px; max-width:460px; width:100%; padding:25px; box-shadow:0 24px 80px #0004; }
+.analytics-export-modal-head { display:flex; gap:13px; align-items:flex-start; margin-bottom:24px; }
+.analytics-export-modal-head > div:nth-child(2) { flex:1; min-width:0; }
+.analytics-export-emblem { background:#f5ebda; border-radius:12px; width:46px; height:46px; display:grid; place-items:center; flex-shrink:0; font-size:23px; }
+.analytics-export-modal h2 { font-size:19px; margin:0 0 7px; color:#30251b; }
+.analytics-export-modal p { color:#776e63; font-size:13px; line-height:1.6; margin:0; }
+.analytics-export-modal label { display:block; color:#3d3329; font-weight:700; font-size:13px; margin-bottom:8px; }
+.analytics-export-close { border:0; background:transparent; font-size:25px; line-height:1; color:#777; padding:0 4px; }
+.analytics-export-password-row { display:flex; border:1px solid #d9cdbc; border-radius:9px; overflow:hidden; align-items:center; }
+.analytics-export-password-row:focus-within { outline:2px solid #b99a67; }
+.analytics-export-password-row input { min-width:0; width:100%; padding:12px; border:0; outline:0; font-size:14px; }
+.analytics-export-eye { border:0; background:white; padding:10px 12px; color:#786850; display:grid; place-items:center; }
+.analytics-export-modal .analytics-export-error { color:#b22e2e; min-height:22px; margin:8px 0; font-size:12px; }
+.analytics-export-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:12px; }
+.analytics-export-footer button { margin:0; min-height:40px; padding:10px 15px; border-radius:8px; font-weight:700; font-size:13px; }
+.analytics-export-confirm { background:#86653e; border:1px solid #86653e; color:white; }
+.analytics-export-confirm:hover { background:#61472c; }
+.analytics-export-confirm:disabled { opacity:.6; cursor:wait; }
+@media(max-width:600px) { .analytics-export-btn { width:100%; } .analytics-export-modal { padding:18px; } .analytics-export-footer { flex-wrap:wrap; } .analytics-export-footer button { flex:1; } }

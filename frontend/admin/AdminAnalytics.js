@@ -205,7 +205,84 @@
     if (sharedHeading) sharedHeading.classList.add("hidden");
     actions.innerHTML = "";
     const filtersMarkup = `<div class="analytics-header-filters"><label class="analytics-demo-control" for="analyticsDemoToggle"><span>Dummy Data</span><input id="analyticsDemoToggle" type="checkbox" role="switch" aria-label="Show demo analytics data"><span class="analytics-demo-switch" aria-hidden="true"></span><strong id="analyticsDemoToggleState">OFF</strong></label><div class="analytics-date-filter" id="analyticsDateFilter"><span class="sr-only">Date Range</span><button class="analytics-date-trigger" type="button" id="analyticsDateTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="analyticsDateMenu"><span id="analyticsDateLabel">Overall</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="analytics-date-menu hidden" id="analyticsDateMenu" role="menu" aria-label="Date range options">${dateOptions.map(([value, label]) => `<button type="button" role="menuitem" data-range="${value}" class="${value === "overall" ? "selected" : ""}">${label}</button>`).join("")}</div></div><label class="analytics-compact-filter"><span class="sr-only">Payment Method</span><select id="analyticsPaymentMethod" aria-label="Payment Method"><option value="all">All Payment Methods</option><option value="cash">Cash</option><option value="gcash">GCash</option><option value="card">Card</option><option value="other">Other</option></select></label><label class="analytics-compact-filter"><span class="sr-only">Customer Type</span><select id="analyticsCustomerType" aria-label="Customer Type"><option value="all">All Customer Types</option><option value="walkin">Walk-in</option><option value="appointment">Appointment</option></select></label></div>`;
-    body.innerHTML = `<section class="analytics-dashboard"><section class="analytics-kpis" id="analyticsKpis" aria-live="polite"></section><header class="analytics-heading"><div class="analytics-heading-copy"><h2><strong id="analyticsCustomerTotal">—</strong> Total Customers</h2></div><div class="analytics-header-actions">${filtersMarkup}</div><aside class="analytics-welcome-card" aria-label="Current Philippine date and time"><img class="analytics-welcome-art" src="/images/CashierDashboard/Sun.png" alt="" aria-hidden="true" decoding="async"><div class="analytics-welcome-copy"><span class="analytics-welcome-kicker">Welcome! Today Is</span><strong class="analytics-welcome-day"></strong><span class="analytics-welcome-date"></span><time class="analytics-welcome-time"></time></div></aside></header><nav class="analytics-tabs" id="analyticsTabs" aria-label="Analytics categories">${[["overview","Overview"],["sales","Sales Insights"],["customers","Customer Insights"],["barbers","Barber Performance"],["inventory","Inventory Insights"]].map(([id, label]) => `<button type="button" class="analytics-tab${id === "overview" ? " active" : ""}" data-tab="${id}" aria-pressed="${id === "overview"}">${label}</button>`).join("")}</nav><div id="analyticsCharts" class="analytics-chart-grid"></div><p class="analytics-footnote">Revenue is based on non-voided payments. Visits count queue tickets, not unique people. Inventory levels and barber ratings are current/all-time snapshots.</p></section>`;
+    body.innerHTML = `<section class="analytics-dashboard"><section class="analytics-kpis" id="analyticsKpis" aria-live="polite"></section><header class="analytics-heading"><div class="analytics-heading-copy"><div class="analytics-total-line"><h2><strong id="analyticsCustomerTotal">—</strong> Total Customers</h2><button type="button" class="analytics-export-btn" id="analyticsExportAll"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg> Export All Records</button></div></div><div class="analytics-header-actions">${filtersMarkup}</div><aside class="analytics-welcome-card" aria-label="Current Philippine date and time"><img class="analytics-welcome-art" src="/images/CashierDashboard/Sun.png" alt="" aria-hidden="true" decoding="async"><div class="analytics-welcome-copy"><span class="analytics-welcome-kicker">Welcome! Today Is</span><strong class="analytics-welcome-day"></strong><span class="analytics-welcome-date"></span><time class="analytics-welcome-time"></time></div></aside></header><nav class="analytics-tabs" id="analyticsTabs" aria-label="Analytics categories">${[["overview","Overview"],["sales","Sales Insights"],["customers","Customer Insights"],["barbers","Barber Performance"],["inventory","Inventory Insights"]].map(([id, label]) => `<button type="button" class="analytics-tab${id === "overview" ? " active" : ""}" data-tab="${id}" aria-pressed="${id === "overview"}">${label}</button>`).join("")}</nav><div id="analyticsCharts" class="analytics-chart-grid"></div><p class="analytics-footnote">Revenue is based on non-voided payments. Visits count queue tickets, not unique people. Inventory levels and barber ratings are current/all-time snapshots.</p></section>`;
+    // Protected all-records export: the server rechecks the signed-in admin password.
+    const exportButton = body.querySelector("#analyticsExportAll");
+    let exportDialog = null;
+    function closeExportDialog() {
+      if (!exportDialog) return;
+      exportDialog.remove(); exportDialog = null;
+      document.body.classList.remove("dialog-open");
+      exportButton.focus();
+    }
+    function onExportKeys(event) {
+      if (!exportDialog) return;
+      if (event.key === "Escape") { event.preventDefault(); closeExportDialog(); return; }
+      if (event.key !== "Tab") return;
+      const items = [...exportDialog.querySelectorAll("button:not(:disabled),input:not(:disabled)")];
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus(); }
+      else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus(); }
+    }
+    exportButton.addEventListener("click", () => {
+      if (exportDialog) return;
+      exportDialog = document.createElement("div");
+      exportDialog.className = "analytics-export-backdrop";
+      exportDialog.innerHTML = `<form class="analytics-export-modal" role="dialog" aria-modal="true" aria-labelledby="analyticsExportTitle"><div class="analytics-export-modal-head"><div class="analytics-export-emblem" aria-hidden="true">🔒</div><div><h2 id="analyticsExportTitle">Confirm Records Export</h2><p>Enter your administrator account password to download the full Excel workbook.</p></div><button type="button" class="analytics-export-close" aria-label="Close">×</button></div><label for="analyticsExportPassword">Admin Password</label><div class="analytics-export-password-row"><input id="analyticsExportPassword" type="password" required autocomplete="current-password" placeholder="Enter your password" maxlength="256"/><button type="button" class="analytics-export-eye" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></div><p class="analytics-export-error" role="alert" aria-live="polite"></p><div class="analytics-export-footer"><button type="button" class="secondary-btn analytics-export-cancel">Cancel</button><button type="submit" class="analytics-export-confirm">Verify &amp; Download</button></div></form>`;
+      document.body.appendChild(exportDialog);
+      document.body.classList.add("dialog-open");
+      exportDialog.querySelector("#analyticsExportPassword").focus();
+      exportDialog.addEventListener("click", event => {
+        if (event.target === exportDialog || event.target.closest(".analytics-export-close,.analytics-export-cancel")) closeExportDialog();
+      });
+      exportDialog.querySelector(".analytics-export-eye").addEventListener("click", event => {
+        const input = exportDialog.querySelector("#analyticsExportPassword");
+        const button = event.currentTarget;
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        button.setAttribute("aria-pressed", String(show));
+        button.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      });
+      exportDialog.addEventListener("keydown", onExportKeys);
+      exportDialog.querySelector("form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const dialog = exportDialog;
+        const submit = dialog.querySelector(".analytics-export-confirm");
+        const password = dialog.querySelector("#analyticsExportPassword").value;
+        const errorBox = dialog.querySelector(".analytics-export-error");
+        if (!password || submit.disabled) return;
+        submit.disabled = true; submit.textContent = "Preparing Excel…"; errorBox.textContent = "";
+        try {
+          const response = await fetch("/api/reports/export-all", {
+            method: "POST", credentials: "same-origin",
+            headers: { "Content-Type": "application/json", "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            body: JSON.stringify({ password })
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401) { window.location.href = "/login.html#expired"; return; }
+            throw new Error(data.error || "Export failed. Please try again.");
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `renz-barbershop-all-records-${manilaToday()}.xlsx`;
+          document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          dialog.querySelector("#analyticsExportPassword").value = "";
+          closeExportDialog();
+          App.toast("All records exported successfully.");
+        } catch (error) {
+          if (exportDialog === dialog) {
+            errorBox.textContent = error.message || "Unable to export records.";
+            dialog.querySelector("#analyticsExportPassword").value = "";
+            dialog.querySelector("#analyticsExportPassword").focus();
+          }
+        } finally {
+          if (exportDialog === dialog) { submit.disabled = false; submit.textContent = "Verify & Download"; }
+        }
+      });
+    });
     const demoToggle = body.querySelector("#analyticsDemoToggle"), demoToggleState = body.querySelector("#analyticsDemoToggleState");
     const dateTrigger = body.querySelector("#analyticsDateTrigger"), dateMenu = body.querySelector("#analyticsDateMenu"), dateFilter = body.querySelector("#analyticsDateFilter"), dateDisplay = body.querySelector("#analyticsDateLabel");
     state.range = "overall"; state.from = ""; state.to = ""; state.paymentMethod = "all"; state.customerType = "all";
@@ -373,7 +450,7 @@
     });
     body.querySelector("#analyticsTabs").addEventListener("click", event => { const button = event.target.closest("[data-tab]"); if (!button || !state.data) return; state.tab = button.dataset.tab; body.querySelectorAll(".analytics-tab").forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", String(b === button)); }); renderTab(body); });
     await load();
-    return () => { disposed = true; closeDateModal(); document.removeEventListener("mousedown", outsideDateMenu); document.removeEventListener("keydown", escapeDateMenu); window.clearInterval(welcomeClockTimer); ++state.token; destroy(); };
+    return () => { disposed = true; closeExportDialog(); closeDateModal(); document.removeEventListener("mousedown", outsideDateMenu); document.removeEventListener("keydown", escapeDateMenu); window.clearInterval(welcomeClockTimer); ++state.token; destroy(); };
   }
   window.AdminAnalytics = { render: analytics };
 })();

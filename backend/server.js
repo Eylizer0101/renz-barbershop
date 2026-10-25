@@ -33,6 +33,7 @@ const customerRoutes = require("./routes/customers");
 const staffRoutes = require("./routes/staff");
 const inventoryRoutes = require("./routes/inventory");
 const analyticsRoutes = require("./routes/analytics");
+const reportsRoutes = require("./routes/reports");
 const auditRoutes = require("./routes/audit");
 const {router:appointmentRoutes} = require("./routes/appointments");
 const {processAppointmentReminders} = require("./utils/appointmentReminders");
@@ -160,6 +161,7 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/reports", reportsRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/appointments", appointmentRoutes);
 
