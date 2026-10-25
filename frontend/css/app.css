@@ -4348,3 +4348,19 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .analytics-export-confirm:hover { background:#61472c; }
 .analytics-export-confirm:disabled { opacity:.6; cursor:wait; }
 @media(max-width:600px) { .analytics-export-btn { width:100%; } .analytics-export-modal { padding:18px; } .analytics-export-footer { flex-wrap:wrap; } .analytics-export-footer button { flex:1; } }
+
+/* Export Records UI refinement: right-aligned action; compact password prompt. */
+.analytics-dashboard .analytics-heading-copy { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%; }
+.analytics-dashboard .analytics-heading-copy .analytics-total-line { flex:0 1 auto; min-width:0; }
+.analytics-dashboard .analytics-heading-copy .analytics-export-btn { flex:0 0 auto; margin-left:auto; }
+.analytics-export-modal { max-width:420px; padding:23px 24px 20px; }
+.analytics-export-modal-head { gap:12px; margin-bottom:19px; }
+.analytics-export-emblem { width:42px; height:42px; border-radius:11px; color:#89643c; background:#f6eee2; }
+.analytics-export-emblem svg { display:block; }
+.analytics-export-modal h2 { font-size:18px; line-height:1.3; }
+.analytics-export-modal-head p { font-size:12px; line-height:1.5; }
+.analytics-export-password-row input { flex:1; padding:11px 12px; }
+.analytics-export-eye { flex:0 0 auto; background:transparent; color:#795a35; font-size:12px; font-weight:700; padding:10px 14px; min-width:58px; }
+.analytics-export-eye:hover { color:#533a23; background:#f8f3eb; }
+.analytics-export-footer { margin-top:7px; }
+@media(max-width:600px) { .analytics-dashboard .analytics-heading-copy .analytics-export-btn { width:auto; max-width:100%; } .analytics-export-modal { padding:19px; } }
