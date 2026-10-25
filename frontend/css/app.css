@@ -4452,3 +4452,11 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
     width: 100%;
   }
 }
+
+/* Export button alignment: match All Customer Types without moving the welcome card.
+   The four filters are separated by an 8px gap; compensate for the last gap on the title row. */
+@media (min-width: 1201px) {
+  .analytics-dashboard .analytics-heading-copy > .analytics-export-btn {
+    margin-right: 8px;
+  }
+}
