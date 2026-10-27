@@ -4473,9 +4473,9 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 /* Appointment KPI illustrations: tucked behind the right edge, like customer dashboard cards. */
 .admin-appt-stat{position:relative;overflow:hidden;isolation:isolate;min-height:125px}
 .admin-appt-stat > :not(.admin-appt-stat-icon){position:relative;z-index:1}
-.admin-appt-stat-icon{position:absolute;right:-15px;bottom:-17px;width:116px;height:116px;object-fit:contain;opacity:.36;pointer-events:none;user-select:none;z-index:0}
+.admin-appt-stat-icon{position:absolute;right:-15px;top:50%;transform:translateY(-50%);width:116px;height:116px;object-fit:contain;opacity:.36;pointer-events:none;user-select:none;z-index:0}
 .admin-appt-stat>span,.admin-appt-stat>small{max-width:75%}
-@media(max-width:600px){.admin-appt-stat-icon{width:90px;height:90px;right:-13px;bottom:-12px}.admin-appt-stat>span,.admin-appt-stat>small{max-width:83%}}
+@media(max-width:600px){.admin-appt-stat-icon{width:90px;height:90px;right:-13px}.admin-appt-stat>span,.admin-appt-stat>small{max-width:83%}}
 
 .admin-appt-filters{display:flex;align-items:center;gap:12px;padding:20px 22px;flex-wrap:wrap}
 .admin-appt-filters input,.admin-appt-filters select{height:48px;border:1px solid #e6dacf;border-radius:12px;padding:0 14px;background:#fff;color:#382c24;font:inherit;min-width:0}
