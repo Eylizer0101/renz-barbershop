@@ -4577,3 +4577,8 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
   .customer-section-banner p {font-size:12px;}
   .customer-section-banner-eyebrow {font-size:10px;letter-spacing:1px;}
 }
+/* Haircut Gallery banner only: slightly larger scissors artwork. */
+#galleryPage .customer-section-banner-art {width:155px;height:155px;flex-basis:155px;}
+@media(max-width:650px){
+  #galleryPage .customer-section-banner-art {width:92px;height:92px;flex-basis:92px;}
+}
