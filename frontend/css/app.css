@@ -4517,9 +4517,9 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
   content: "";
   position: absolute;
-  width: min(88%, 480px);
+  width: min(60%, 350px);
   aspect-ratio: 1 / 1;
-  left: 50%;
+  left: 68%;
   top: 50%;
   transform: translate(-50%, -50%) rotate(-18deg);
   background: url('../images/landingpage/Scissors.png') center / contain no-repeat;
@@ -4530,7 +4530,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 @media (max-width: 700px) {
   .front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before,
   .front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
-    width: min(88%, 340px);
+    width: min(60%, 260px);
     opacity: .11;
   }
 }
