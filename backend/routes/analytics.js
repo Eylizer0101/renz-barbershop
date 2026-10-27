@@ -3,6 +3,9 @@ const { requireAuth, requireRole } = require("../middleware/auth");
 const { todayKey, startOfDay, addDays, validDateKey } = require("../utils/dates");
 
 const router = express.Router();
+// Existing injected records are retained but excluded from real-only analytics.
+const realOnly = { demoBatchId: { $exists: false } };
+const analyticsScope = req => req.query.includeDummy === "true" ? {} : realOnly;
 router.use(requireAuth, requireRole("admin"));
 
 const RANGES = {
@@ -76,9 +79,10 @@ router.get("/summary", async (req, res) => {
   const db = req.app.locals.db;
   const range = RANGES[req.query.range] ? req.query.range : "today";
   const [start, end] = RANGES[range]();
+  const scope = analyticsScope(req);
 
-  const tickets = await db.collection("queueTickets").find({ createdAt: { $gte: start, $lt: end } }).toArray();
-  const payments = await db.collection("payments").find({ createdAt: { $gte: start, $lt: end }, voided: { $ne: true } }).toArray();
+  const tickets = await db.collection("queueTickets").find({ ...scope, createdAt: { $gte: start, $lt: end } }).toArray();
+  const payments = await db.collection("payments").find({ ...scope, createdAt: { $gte: start, $lt: end }, voided: { $ne: true } }).toArray();
 
   const completed = tickets.filter(t => t.status === "completed");
   const called = tickets.filter(t => t.calledAt);
@@ -156,6 +160,7 @@ router.get("/insights", async (req, res) => {
   const requested = analyticsDates(req.query);
   if (requested.error) return res.status(400).json({ error: requested.error });
   const { range, start, end } = requested;
+  const scope = analyticsScope(req);
   const paymentMethod = String(req.query.paymentMethod || "all").toLowerCase();
   const customerType = String(req.query.customerType || "all").toLowerCase();
   if (!["all", "cash", "gcash", "card", "other"].includes(paymentMethod)) return res.status(400).json({ error: "Choose a valid payment method." });
@@ -165,11 +170,11 @@ router.get("/insights", async (req, res) => {
   const key = date => { const parts = dayFmt.formatToParts(date); const o = Object.fromEntries(parts.map(x => [x.type, x.value])); return `${o.year}-${o.month}-${o.day}`; };
   // Overall includes all stored records, including future scheduled appointments.
   const dates = requested.all ? null : { $gte: start, $lt: end };
-  const eventsMatch = dates ? [{ $match: { createdAt: dates } }] : [];
+  const eventsMatch = [{ $match: { ...scope, ...(dates ? { createdAt: dates } : {}) } }];
   const [allTickets, allPayments, allAppointments, inventory, ratings, inventoryMonths] = await Promise.all([
-    db.collection("queueTickets").find(dates ? { createdAt: dates } : {}, { projection: { status: 1, service: 1, customerId: 1, source: 1, appointmentId: 1, barberId: 1, barberName: 1, createdAt: 1, calledAt: 1, completedAt: 1, amountPaid: 1 } }).toArray(),
-    db.collection("payments").find({ ...(dates ? { createdAt: dates } : {}), voided: { $ne: true } }, { projection: { createdAt: 1, type: 1, method: 1, ticketId: 1, amount: 1, discount: 1, barberName: 1, description: 1, quantity: 1 } }).toArray(),
-    db.collection("appointments").find(dates ? { startsAt: dates } : {}, { projection: { status: 1, startsAt: 1 } }).toArray(),
+    db.collection("queueTickets").find({ ...scope, ...(dates ? { createdAt: dates } : {}) }, { projection: { status: 1, service: 1, customerId: 1, source: 1, appointmentId: 1, barberId: 1, barberName: 1, createdAt: 1, calledAt: 1, completedAt: 1, amountPaid: 1 } }).toArray(),
+    db.collection("payments").find({ ...scope, ...(dates ? { createdAt: dates } : {}), voided: { $ne: true } }, { projection: { createdAt: 1, type: 1, method: 1, ticketId: 1, amount: 1, discount: 1, barberName: 1, description: 1, quantity: 1 } }).toArray(),
+    db.collection("appointments").find({ ...scope, ...(dates ? { startsAt: dates } : {}) }, { projection: { status: 1, startsAt: 1 } }).toArray(),
     db.collection("inventory").find({}, { projection: { name: 1, category: 1, quantity: 1, minimumStock: 1 } }).toArray(),
     db.collection("barberRatings").aggregate([{ $group: { _id: "$barberId", average: { $avg: "$rating" }, count: { $sum: 1 } } }]).toArray(),
     db.collection("inventoryEvents").aggregate([
@@ -183,7 +188,7 @@ router.get("/insights", async (req, res) => {
   const matchedMethodPayments = paymentMethod === "all" ? allPayments : allPayments.filter(p => String(p.method || "").toLowerCase() === paymentMethod);
   const referencedIds = [...new Map(matchedMethodPayments.filter(p => p.ticketId).map(p => [String(p.ticketId), p.ticketId])).values()];
   const extraTickets = referencedIds.length ? await db.collection("queueTickets").find(
-    { _id: { $in: referencedIds } }, { projection: { source: 1, appointmentId: 1 } }
+    { ...scope, _id: { $in: referencedIds } }, { projection: { source: 1, appointmentId: 1 } }
   ).toArray() : [];
   const ticketById = new Map([...allTickets, ...extraTickets].map(t => [String(t._id), t]));
   const isAppointment = t => Boolean(t && (t.appointmentId || t.source === "appointment"));
