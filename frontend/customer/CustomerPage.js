@@ -636,6 +636,10 @@
     section.prepend(banner);
   }
 
+  // The banners now provide these descriptions; remove the duplicate captions below them.
+  $("galleryPage")?.querySelector(".section-heading p.muted")?.remove();
+  $("barbersPage")?.querySelector(".section-heading p.muted")?.remove();
+
   // ---------- Barbers ----------
 
   // Barber discovery is customer-only; shared admin barber cards are unchanged.
