@@ -4549,3 +4549,31 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
     height: 76px;
   }
 }
+
+/* Customer section header banners (Visits, Appointments, Gallery, Barbers). */
+#visitsPage .customer-section-banner,
+#appointmentsPage .customer-section-banner,
+#galleryPage .customer-section-banner,
+#barbersPage .customer-section-banner {
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  position:relative;overflow:hidden;min-height:162px;margin:0 0 24px;
+  padding:26px 31px;border-radius:17px;
+  background:linear-gradient(110deg,#242522,#37372f);color:#fff;
+}
+.customer-section-banner-copy {position:relative;z-index:1;min-width:0;flex:1;}
+.customer-section-banner-eyebrow {display:flex;align-items:center;gap:10px;color:#e3b66c;font-size:12px;font-weight:750;letter-spacing:1.5px;}
+.customer-section-banner-eyebrow i {width:8px;height:8px;border-radius:50%;background:#d8b26c;flex:none;}
+.customer-section-banner h2 {margin:12px 0 8px;color:#fff;font-size:clamp(23px,2.5vw,32px);line-height:1.2;}
+.customer-section-banner p {margin:0;color:#eee9e1;font-size:14px;line-height:1.5;}
+.customer-section-banner-art {width:124px;height:124px;object-fit:contain;flex:0 0 124px;pointer-events:none;}
+.customer-section-banner-button {display:inline-flex;align-items:center;justify-content:center;margin-top:16px;padding:11px 19px;border:0;border-radius:9px;background:#c4a06b;color:#201c17;font-weight:750;cursor:pointer;}
+.customer-section-banner-button:hover {background:#dfbc84;}
+/* The appointment booking action now appears inside the banner, not twice. */
+#appointmentsPage:has(.customer-section-banner) .appointment-ui__header {display:none;}
+@media(max-width:650px){
+  #visitsPage .customer-section-banner,#appointmentsPage .customer-section-banner,#galleryPage .customer-section-banner,#barbersPage .customer-section-banner {min-height:132px;padding:20px;gap:10px;}
+  .customer-section-banner-art {width:74px;height:74px;flex-basis:74px;}
+  .customer-section-banner h2 {font-size:22px;}
+  .customer-section-banner p {font-size:12px;}
+  .customer-section-banner-eyebrow {font-size:10px;letter-spacing:1px;}
+}

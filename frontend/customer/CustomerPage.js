@@ -619,6 +619,23 @@
     if (target) openPage(target.dataset.open);
   });
 
+  // Customer section banners — presentation only; existing page logic is unchanged.
+  const customerPageBanners = {
+    visits: ['VISIT OVERVIEW', 'My Visit History', 'View your previous visits and completed services.', '/images/customerDashboard/MyVisit.png'],
+    appointments: ['BOOKING OVERVIEW', 'My Appointments', 'Track upcoming bookings and review appointment history.', '/images/customerDashboard/UpcomingAppointments.png'],
+    gallery: ['STYLE COLLECTION', 'Haircut Gallery', 'Explore haircut styles and find your next look.', '/images/landingpage/Scissors.png'],
+    barbers: ['OUR TEAM', 'Meet Our Barbers', 'Discover our barbers, specialties, and current availability.', '/images/AdminDashboard/Barbers.png']
+  };
+  for (const [pageName, [eyebrow, title, description, picture]] of Object.entries(customerPageBanners)) {
+    const section = $(pageName + 'Page');
+    if (!section || section.querySelector('.customer-section-banner')) continue;
+    const banner = document.createElement('section');
+    banner.className = 'customer-section-banner';
+    banner.setAttribute('aria-label', title);
+    banner.innerHTML = `<div class="customer-section-banner-copy"><span class="customer-section-banner-eyebrow"><i aria-hidden="true"></i>${eyebrow}</span><h2>${title}</h2><p>${description}</p>${pageName === 'appointments' ? '<button class="customer-section-banner-button" type="button" data-open="booking">+ Book Appointment</button>' : ''}</div><img class="customer-section-banner-art" src="${picture}" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+    section.prepend(banner);
+  }
+
   // ---------- Barbers ----------
 
   // Barber discovery is customer-only; shared admin barber cards are unchanged.
