@@ -180,7 +180,7 @@
         eyebrow: 'CUSTOMER OVERVIEW',
         title: 'Customer Management',
         description: 'Manage customer accounts, profiles, and visit history.',
-        artwork: `<svg viewBox="0 0 120 120" fill="none" aria-hidden="true"><circle cx="59" cy="42" r="19" stroke="currentColor" stroke-width="5"/><path d="M24 101V90c0-19 16-32 35-32s35 13 35 32v11H24Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="96" cy="44" r="11" stroke="currentColor" stroke-width="4" opacity=".55"/><path d="M99 70c11 2 18 10 18 21v6h-13" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".55"/></svg>`
+        artwork: '<img src="/images/AdminDashboard/Customers.png" alt="" loading="eager" decoding="async">'
       }
     }[kind];
     if (!content) return;
