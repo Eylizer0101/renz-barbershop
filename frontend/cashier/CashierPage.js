@@ -168,7 +168,7 @@
         eyebrow: 'BOOKING OVERVIEW',
         title: 'Appointment Management',
         description: 'Manage customer bookings, confirmations, and check-ins in one place.',
-        artwork: `<svg viewBox="0 0 120 120" fill="none" aria-hidden="true"><rect x="17" y="27" width="86" height="77" rx="12" stroke="currentColor" stroke-width="5"/><path d="M17 49h86M39 18v19M81 18v19" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="35" y="62" width="17" height="15" rx="3" fill="currentColor" opacity=".82"/><path d="m65 76 10 10 18-23" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        artwork: '<img src="/images/AdminDashboard/ActivityLog.png" alt="" loading="eager" decoding="async">'
       },
       payments: {
         eyebrow: 'SALES OVERVIEW',

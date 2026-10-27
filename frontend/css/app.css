@@ -2487,13 +2487,13 @@ body.customer-account-open { overflow:hidden; }
 .front-desk-view .desk-dashboard-grid {margin-top:14px;}
 @media(max-width:700px) {
   .front-desk-view #deskStats {margin-top:-6px;gap:10px;}
-  .front-desk-view #deskStats .desk-summary-card {min-height:103px;padding:13px 65px 13px 13px!important;}
+  .front-desk-view #deskStats .desk-summary-card {min-height:103px;padding:13px 58px 13px 13px!important;}
   .front-desk-view #deskStats .desk-summary-watermark {width:52px;height:52px;right:7px;opacity:1;}
   .front-desk-view #deskStats .desk-summary-card .stat-value {font-size:21px;}
   .front-desk-view #deskStats .desk-summary-card .stat-label {font-size:12px;}
 }
 @media(max-width:420px) {
-  .front-desk-view #deskStats .desk-summary-card {padding-right:51px!important;}
+  .front-desk-view #deskStats .desk-summary-card {padding-right:46px!important;}
   .front-desk-view #deskStats .desk-summary-watermark {width:42px;height:42px;right:5px;opacity:1;}
 }
 
@@ -2516,14 +2516,14 @@ body.customer-account-open { overflow:hidden; }
   filter:saturate(1.5);
 }
 .front-desk-view #deskStats .desk-summary-card:hover .desk-summary-watermark {
-  right:-12px;opacity:.42;transform:translate(-3px,-50%) scale(1.04);
+  right:-9px;opacity:.42;transform:translate(-3px,-50%) scale(1.04);
 }
 @media(max-width:700px) {
-  .front-desk-view #deskStats .desk-summary-watermark {right:-11px;width:82px;height:82px;opacity:.50;}
+  .front-desk-view #deskStats .desk-summary-watermark {right:-9px;width:68px;height:68px;opacity:.50;}
   .front-desk-view #deskStats .desk-summary-card:hover .desk-summary-watermark {right:-9px;opacity:.55;}
 }
 @media(max-width:420px) {
-  .front-desk-view #deskStats .desk-summary-watermark {right:-8px;width:64px;height:64px;}
+  .front-desk-view #deskStats .desk-summary-watermark {right:-7px;width:55px;height:55px;}
 }
 
 
@@ -3014,7 +3014,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .front-desk-view #payTotals .cashier-payment-summary-card {
   position:relative;isolation:isolate;display:flex;flex-direction:column;
   justify-content:center;align-items:flex-start;gap:5px;
-  min-height:108px;padding:15px 88px 15px 18px!important;
+  min-height:108px;padding:15px 72px 15px 18px!important;
   border:1px solid #765039;border-radius:15px;
   background:linear-gradient(135deg,#241610 0%,#573624 53%,#9a6440 100%);
   color:#fff;box-shadow:0 8px 21px #3b241a24;overflow:hidden;
@@ -3037,7 +3037,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
   font-size:11px;line-height:1.45;
 }
 .front-desk-view #payTotals .cashier-payment-summary-watermark {
-  position:absolute;right:-15px;top:50%;width:116px;height:116px;
+  position:absolute;right:-11px;top:50%;width:88px;height:88px;
   display:grid;place-items:center;transform:translateY(-50%);
   opacity:.36;pointer-events:none;user-select:none;z-index:0;
   transition:opacity .3s ease,transform .3s ease,right .3s ease;
@@ -4534,4 +4534,18 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .front-desk-view .desk-dashboard-panels > .desk-overview-panel > * {
   position: relative;
   z-index: 1;
+}
+
+/* Cashier Appointments: same decorative image used in Admin Appointment Monitoring. */
+#pageContent .cashier-management-banner[aria-label="Appointment Management"] .cashier-management-banner-art img {
+  width: 150px;
+  height: 116px;
+  max-width: 100%;
+  object-fit: contain;
+}
+@media (max-width: 650px) {
+  #pageContent .cashier-management-banner[aria-label="Appointment Management"] .cashier-management-banner-art img {
+    width: 85px;
+    height: 76px;
+  }
 }
