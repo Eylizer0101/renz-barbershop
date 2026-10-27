@@ -54,7 +54,7 @@ function addSheet(book, title, spec, generated) {
       const cell = row.getCell(i+1);
       cell.value = typeof v === 'number' && Number.isFinite(v) ? v : safe(v);
       if (v instanceof Date && !Number.isNaN(v.getTime())) { cell.value = v; cell.numFmt = 'mmm dd, yyyy hh:mm AM/PM'; }
-      cell.alignment = { vertical:'middle', wrapText:true };
+      cell.alignment = { vertical:'middle', horizontal:'left', wrapText:true };
       cell.font = { name:'Arial', size:10, color:{argb:'FF252525'} };
       if (index % 2) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFF8F5F0'} };
       cell.border = { bottom:{style:'hair', color:{argb:'FFE9E3DA'}} };
