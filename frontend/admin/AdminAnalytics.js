@@ -24,6 +24,48 @@
     return `<div class="analytics-calendar" data-calendar="${side}"><div class="analytics-calendar-nav"><button type="button" data-move="-1" aria-label="Previous month">‹</button><div class="analytics-calendar-selects"><select data-calendar-month aria-label="Select month">${monthNames.map((name, i) => `<option value="${i}"${i === month ? " selected" : ""}>${name}</option>`).join("")}</select><select data-calendar-year aria-label="Select year">${years.map(y => `<option value="${y}"${y === year ? " selected" : ""}>${y}</option>`).join("")}</select></div><button type="button" data-move="1" aria-label="Next month">›</button></div><div class="analytics-calendar-week">${["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => `<span>${d}</span>`).join("")}</div><div class="analytics-calendar-days">${days.map(day => { const value = dateKey(day); const picked = value === start || value === end; const between = start && end && value >= start && value <= end; return `<button type="button" data-pick="${value}" class="analytics-calendar-day${day.getMonth() !== month ? " outside" : ""}${between ? " within" : ""}${picked ? " selected" : ""}" aria-label="${dateLabel(value)}" aria-pressed="${Boolean(picked)}">${day.getDate()}</button>`; }).join("")}</div></div>`;
   }
 
+  // Presentation-only fixtures: never submitted to the backend or stored as shop records.
+  function demoAnalytics(range) {
+    const labels = range === "today" ? ["9 AM", "11 AM", "1 PM", "3 PM", "5 PM", "7 PM"]
+      : range === "yesterday" ? ["9 AM", "11 AM", "1 PM", "3 PM", "5 PM", "7 PM"]
+      : ["week", "thisWeek", "lastWeek"].includes(range) ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+      : ["month", "thisMonth", "lastMonth", "range", "specific"].includes(range) ? ["Week 1", "Week 2", "Week 3", "Week 4"]
+      : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const visits = labels.map((_, i) => Math.round(11 + i * 2.4 + (i % 3) * 6));
+    const revenue = labels.map((_, i) => Math.round((2750 + i * 510 + (i % 4) * 920) / 10) * 10);
+    const trends = labels.map((label, i) => ({ label, visits: visits[i], revenue: revenue[i],
+      inventorySold: 4 + (i * 3) % 11, inventoryChange: 7 - (i * 5) % 13 }));
+    const totalVisits = visits.reduce((sum, value) => sum + value, 0);
+    const totalRevenue = revenue.reduce((sum, value) => sum + value, 0);
+    const served = Math.round(totalVisits * .79);
+    const appointments = Math.round(totalVisits * .46);
+    const serviceRevenue = Math.round(totalRevenue * .84);
+    return {
+      range, demo: true,
+      totals: { revenue: totalRevenue, visits: totalVisits, served, appointments,
+        serviceRevenue, productRevenue: totalRevenue - serviceRevenue },
+      averageWaitMinutes: 18,
+      inventory: { total: 27, low: 4 },
+      trends,
+      statuses: { Completed: served, Waiting: Math.round(totalVisits * .09), Serving: 5,
+        Cancelled: Math.max(0, totalVisits - served - Math.round(totalVisits * .09) - 5) },
+      bookingStatuses: { Confirmed: Math.round(appointments * .65), Pending: Math.round(appointments * .17),
+        Completed: Math.round(appointments * .12), Cancelled: Math.round(appointments * .06) },
+      methods: { Cash: Math.round(totalRevenue * .54), GCash: Math.round(totalRevenue * .32),
+        Card: Math.round(totalRevenue * .14) },
+      walkinVisits: totalVisits - appointments, appointmentVisits: appointments,
+      topServices: [{ name: "Classic Haircut", count: Math.round(served * .36) },
+        { name: "Fade Cut", count: Math.round(served * .26) },
+        { name: "Beard Trim", count: Math.round(served * .19) },
+        { name: "Haircut + Wash", count: Math.round(served * .12) },
+        { name: "Kids Haircut", count: Math.round(served * .07) }],
+      topProducts: [{ name: "Hair Wax", quantity: 38 }, { name: "Pomade", quantity: 31 },
+        { name: "Shampoo", quantity: 23 }, { name: "Hair Gel", quantity: 17 }],
+      byBarber: [{ name: "Barber 1", completed: Math.round(served * .32), revenue: Math.round(serviceRevenue * .32), rating: 4.8 },
+        { name: "Barber 2", completed: Math.round(served * .28), revenue: Math.round(serviceRevenue * .28), rating: 4.7 },
+        { name: "Barber 3", completed: Math.round(served * .23), revenue: Math.round(serviceRevenue * .23), rating: 4.9 }]
+    };
+  }
   function destroy() { for (const chart of state.charts) chart.destroy(); state.charts = []; }
   function chartCard(title, subtitle, id, fullWidth = false) {
     return `<article class="card analytics-chart-card"${fullWidth ? ' style="grid-column: 1 / -1"' : ""}><div class="card-heading"><span class="analytics-chart-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l4-5 3 2 5-7"/></svg></span><div><h2>${escapeHTML(title)}</h2><span class="muted">${escapeHTML(subtitle)}</span></div></div><div class="analytics-chart-area" id="wrap-${id}"><canvas id="${id}" aria-label="${escapeHTML(title)}" role="img"></canvas></div></article>`;
@@ -162,7 +204,7 @@
       ? body.previousElementSibling : body.parentElement?.querySelector(":scope > .section-heading");
     if (sharedHeading) sharedHeading.classList.add("hidden");
     actions.innerHTML = "";
-    const filtersMarkup = `<div class="analytics-header-filters"><label class="analytics-demo-control" for="analyticsDemoToggle"><span>Dummy Data</span><input id="analyticsDemoToggle" type="checkbox" role="switch" aria-label="Generate or remove database dummy records"><span class="analytics-demo-switch" aria-hidden="true"></span><strong id="analyticsDemoToggleState">OFF</strong></label><div class="analytics-date-filter" id="analyticsDateFilter"><span class="sr-only">Date Range</span><button class="analytics-date-trigger" type="button" id="analyticsDateTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="analyticsDateMenu"><span id="analyticsDateLabel">Overall</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="analytics-date-menu hidden" id="analyticsDateMenu" role="menu" aria-label="Date range options">${dateOptions.map(([value, label]) => `<button type="button" role="menuitem" data-range="${value}" class="${value === "overall" ? "selected" : ""}">${label}</button>`).join("")}</div></div><label class="analytics-compact-filter"><span class="sr-only">Payment Method</span><select id="analyticsPaymentMethod" aria-label="Payment Method"><option value="all">All Payment Methods</option><option value="cash">Cash</option><option value="gcash">GCash</option><option value="card">Card</option><option value="other">Other</option></select></label><label class="analytics-compact-filter"><span class="sr-only">Customer Type</span><select id="analyticsCustomerType" aria-label="Customer Type"><option value="all">All Customer Types</option><option value="walkin">Walk-in</option><option value="appointment">Appointment</option></select></label></div>`;
+    const filtersMarkup = `<div class="analytics-header-filters"><label class="analytics-demo-control" for="analyticsDemoToggle"><span>Dummy Data</span><input id="analyticsDemoToggle" type="checkbox" role="switch" aria-label="Show demo analytics data"><span class="analytics-demo-switch" aria-hidden="true"></span><strong id="analyticsDemoToggleState">OFF</strong></label><div class="analytics-date-filter" id="analyticsDateFilter"><span class="sr-only">Date Range</span><button class="analytics-date-trigger" type="button" id="analyticsDateTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="analyticsDateMenu"><span id="analyticsDateLabel">Overall</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="analytics-date-menu hidden" id="analyticsDateMenu" role="menu" aria-label="Date range options">${dateOptions.map(([value, label]) => `<button type="button" role="menuitem" data-range="${value}" class="${value === "overall" ? "selected" : ""}">${label}</button>`).join("")}</div></div><label class="analytics-compact-filter"><span class="sr-only">Payment Method</span><select id="analyticsPaymentMethod" aria-label="Payment Method"><option value="all">All Payment Methods</option><option value="cash">Cash</option><option value="gcash">GCash</option><option value="card">Card</option><option value="other">Other</option></select></label><label class="analytics-compact-filter"><span class="sr-only">Customer Type</span><select id="analyticsCustomerType" aria-label="Customer Type"><option value="all">All Customer Types</option><option value="walkin">Walk-in</option><option value="appointment">Appointment</option></select></label></div>`;
     body.innerHTML = `<section class="analytics-dashboard"><section class="analytics-kpis" id="analyticsKpis" aria-live="polite"></section><header class="analytics-heading"><div class="analytics-heading-copy"><div class="analytics-total-line"><h2><strong id="analyticsCustomerTotal">—</strong> Total Customers</h2></div><button type="button" class="analytics-export-btn" id="analyticsExportAll"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg> Export All Records</button></div><div class="analytics-header-actions">${filtersMarkup}</div><aside class="analytics-welcome-card" aria-label="Current Philippine date and time"><img class="analytics-welcome-art" src="/images/CashierDashboard/Sun.png" alt="" aria-hidden="true" decoding="async"><div class="analytics-welcome-copy"><span class="analytics-welcome-kicker">Welcome! Today Is</span><strong class="analytics-welcome-day"></strong><span class="analytics-welcome-date"></span><time class="analytics-welcome-time"></time></div></aside></header><nav class="analytics-tabs" id="analyticsTabs" aria-label="Analytics categories">${[["overview","Overview"],["sales","Sales Insights"],["customers","Customer Insights"],["barbers","Barber Performance"],["inventory","Inventory Insights"]].map(([id, label]) => `<button type="button" class="analytics-tab${id === "overview" ? " active" : ""}" data-tab="${id}" aria-pressed="${id === "overview"}">${label}</button>`).join("")}</nav><div id="analyticsCharts" class="analytics-chart-grid"></div><p class="analytics-footnote">Revenue is based on non-voided payments. Visits count queue tickets, not unique people. Inventory levels and barber ratings are current/all-time snapshots.</p></section>`;
     // Protected all-records export: the server rechecks the signed-in admin password.
     const exportButton = body.querySelector("#analyticsExportAll");
@@ -380,9 +422,9 @@
         // A running older backend silently treats an unknown "overall" range as "today".
         // Do not display those daily totals as if they were all-time records.
         query.set("_", String(Date.now()));
-        const data = await api(`/api/analytics/insights?${query}`);
+        const data = demoToggle.checked ? demoAnalytics(state.range) : await api(`/api/analytics/insights?${query}`);
         if (disposed || token !== state.token) return;
-        if (state.range === "overall" && data.range !== "overall") {
+        if (!demoToggle.checked && state.range === "overall" && data.range !== "overall") {
           throw new Error("Overall / All Time is not supported by the backend currently running. Save the updated backend/routes/analytics.js, restart the Node.js server, then refresh this page.");
         }
         state.data = data;
@@ -402,29 +444,10 @@
       state.customerType = event.target.value;
       load();
     });
-    function setDemoState(enabled) {
-      demoToggle.checked = Boolean(enabled);
-      demoToggleState.textContent = enabled ? "ON" : "OFF";
-      body.querySelector(".analytics-dashboard").classList.toggle("analytics-demo-active", Boolean(enabled));
-    }
-    demoToggle.disabled = true;
-    try { setDemoState((await api("/api/demo-data/status")).enabled); }
-    catch (error) { demoToggleState.textContent = "ERROR"; console.error("Dummy data status:", error); }
-    finally { demoToggle.disabled = false; }
-    demoToggle.addEventListener("change", async () => {
-      const enabled = !demoToggle.checked;
-      if (enabled && !window.confirm("Remove only the generated dummy records? Real records will remain unchanged.")) {
-        setDemoState(true); return;
-      }
-      demoToggle.disabled = true;
-      try {
-        const result = await api(`/api/demo-data/${enabled ? "disable" : "enable"}`, { method: "POST" });
-        setDemoState(result.enabled);
-        await load();
-      } catch (error) {
-        setDemoState(enabled);
-        window.alert(error.message || "Unable to update dummy data.");
-      } finally { demoToggle.disabled = false; }
+    demoToggle.addEventListener("change", () => {
+      demoToggleState.textContent = demoToggle.checked ? "ON" : "OFF";
+      body.querySelector(".analytics-dashboard").classList.toggle("analytics-demo-active", demoToggle.checked);
+      load();
     });
     body.querySelector("#analyticsTabs").addEventListener("click", event => { const button = event.target.closest("[data-tab]"); if (!button || !state.data) return; state.tab = button.dataset.tab; body.querySelectorAll(".analytics-tab").forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", String(b === button)); }); renderTab(body); });
     await load();
