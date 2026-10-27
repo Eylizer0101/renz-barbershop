@@ -622,7 +622,7 @@
   // Customer section banners — presentation only; existing page logic is unchanged.
   const customerPageBanners = {
     visits: ['VISIT OVERVIEW', 'My Visit History', 'View your previous visits and completed services.', '/images/customerDashboard/MyVisit.png'],
-    appointments: ['BOOKING OVERVIEW', 'My Appointments', 'Track upcoming bookings and review appointment history.', '/images/customerDashboard/UpcomingAppointments.png'],
+    appointments: ['BOOKING OVERVIEW', 'My Appointments', 'Track upcoming bookings and review appointment history.', '/images/appointments/Upcoming.png'],
     gallery: ['STYLE COLLECTION', 'Haircut Gallery', 'Explore haircut styles and find your next look.', '/images/landingpage/Scissors.png'],
     barbers: ['OUR TEAM', 'Meet Our Barbers', 'Discover our barbers, specialties, and current availability.', '/images/AdminDashboard/Barbers.png']
   };
