@@ -710,10 +710,10 @@
 
         // Payments-only KPI artwork. Keep the original totals and Front Desk cards unchanged.
         const paymentIcons = [
-          '<img class="desk-summary-image" src="/images/CashierDashboard/PesoBadge.png" alt="" decoding="async">',
-          '<img class="desk-summary-image" src="/images/CashierDashboard/PesoBadge.png" alt="" decoding="async">',
-          '<img class="desk-summary-image" src="/images/CashierDashboard/PesoBadge.png" alt="" decoding="async">',
-          '<img class="desk-summary-image" src="/images/CashierDashboard/PesoBadge.png" alt="" decoding="async">'
+          '<img src="/images/Payments%20%26%20Reports/Total%20collected.png" alt="" decoding="async">',
+          '<img src="/images/Payments%20%26%20Reports/Cash.png" alt="" decoding="async">',
+          '<img src="/images/Payments%20%26%20Reports/GCash.png" alt="" decoding="async">',
+          '<img src="/images/Payments%20%26%20Reports/card.png" alt="" decoding="async">'
         ];
         $("payTotals").querySelectorAll(".card").forEach((card, i) => {
           card.classList.add("cashier-payment-summary-card");
