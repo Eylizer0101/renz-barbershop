@@ -11,10 +11,10 @@ window.AdminAppointments = (() => {
     body.innerHTML = `
       <div class="admin-appt-page">
         <section class="admin-appt-stats" aria-label="Appointment summary">
-          <div class="admin-appt-stat"><span>Total Appointments</span><strong id="aTotal">—</strong><small>Bookings in records</small></div>
-          <div class="admin-appt-stat"><span>Upcoming</span><strong id="aUpcoming">—</strong><small>Pending or confirmed</small></div>
-          <div class="admin-appt-stat"><span>Completed</span><strong id="aCompleted">—</strong><small>Finished bookings</small></div>
-          <div class="admin-appt-stat"><span>Cancelled / No-show</span><strong id="aCancelled">—</strong><small>Unfulfilled bookings</small></div>
+          <div class="admin-appt-stat"><img class="admin-appt-stat-icon" src="/images/appointments/Total Appointments.png" alt="" aria-hidden="true" loading="lazy"><span>Total Appointments</span><strong id="aTotal">—</strong><small>Bookings in records</small></div>
+          <div class="admin-appt-stat"><img class="admin-appt-stat-icon" src="/images/appointments/Upcoming.png" alt="" aria-hidden="true" loading="lazy"><span>Upcoming</span><strong id="aUpcoming">—</strong><small>Pending or confirmed</small></div>
+          <div class="admin-appt-stat"><img class="admin-appt-stat-icon" src="/images/appointments/Completed.png" alt="" aria-hidden="true" loading="lazy"><span>Completed</span><strong id="aCompleted">—</strong><small>Finished bookings</small></div>
+          <div class="admin-appt-stat"><img class="admin-appt-stat-icon" src="/images/appointments/Cancelled No-show.png" alt="" aria-hidden="true" loading="lazy"><span>Cancelled / No-show</span><strong id="aCancelled">—</strong><small>Unfulfilled bookings</small></div>
         </section>
         <section class="card admin-appt-filters" aria-label="Filter appointments">
           <label class="admin-appt-search"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input type="search" id="aSearch" placeholder="Search customer, service or barber..." aria-label="Search appointments"></label>
