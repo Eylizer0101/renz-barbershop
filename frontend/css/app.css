@@ -4506,15 +4506,14 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 @media(max-width:600px){.admin-appt-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-appt-stat{padding:14px}.admin-appt-stat strong{font-size:24px}.admin-appt-filters{padding:14px}.admin-appt-filters select,.admin-appt-filters input[type=date]{flex:1 1 135px;max-width:none;width:auto}.admin-appt-search{flex-basis:100%}.admin-appt-modal-grid{grid-template-columns:1fr}.admin-appt-table-heading{padding:17px}}
 
 
-/* Front Desk: decorative scissors behind Barber stations and Queue overview only. */
+/* Front Desk: decorative scissors behind Barber stations only. */
 .front-desk-view .desk-dashboard-panels > .desk-barbers-panel,
 .front-desk-view .desk-dashboard-panels > .desk-overview-panel {
   position: relative;
   isolation: isolate;
   overflow: hidden;
 }
-.front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before,
-.front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
+.front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before {
   content: "";
   position: absolute;
   width: min(60%, 350px);
@@ -4528,8 +4527,7 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
   z-index: 0;
 }
 @media (max-width: 700px) {
-  .front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before,
-  .front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
+  .front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before {
     width: min(60%, 260px);
     opacity: .11;
   }
