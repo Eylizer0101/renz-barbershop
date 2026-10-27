@@ -392,6 +392,10 @@ router.post("/close-day", requireAuth, requireRole("admin"), async (req, res) =>
   let summary;
   try {
     await session.withTransaction(async () => {
+      // Serialize closing with same-date appointment creates and reschedules.
+      await db.collection('bookingBatchLocks').updateOne(
+        { _id: day }, { $inc: { version: 1 } }, { upsert: true, session }
+      );
       // Atomic uniqueness prevents a second closing for the same day.
       if (await db.collection("dailyClosings").findOne({ _id: day }, { session })) {
         const error = new Error("Today's operations have already been closed."); error.status = 409; throw error;

@@ -49,6 +49,20 @@ function makeStartTimes(duration) {
   }
   return starts;
 }
+// Use the same per-date write lock as end-of-day closing, so a booking cannot
+// commit against a day which is being closed in another transaction.
+const CLOSED_DAY_MESSAGE = "Sorry, we're closed today. Renz Barbershop is no longer accepting appointments for this date. Please choose another available date.";
+async function ensureBookableDay(db, date, session) {
+  if (session) {
+    await db.collection('bookingBatchLocks').updateOne(
+      { _id: date }, { $inc: { version: 1 } }, { upsert: true, session }
+    );
+  }
+  const closed = await db.collection('dailyClosings').findOne(
+    { _id: date }, { projection: { _id: 1 }, ...(session ? { session } : {}) }
+  );
+  if (closed) appointmentError(CLOSED_DAY_MESSAGE);
+}
 const manilaDateRange = date => {
   const start = new Date(`${date}T00:00:00+08:00`);
   return { start, end: new Date(start.getTime() + 86400000) };
@@ -215,6 +229,8 @@ router.get('/availability', ...customerOnly, async (req,res) => {
   const today=manilaKey(now);
   if(date<today||date>lastDate||new Date(`${date}T00:00:00Z`).getUTCDay()===0)
     return res.status(400).json({error:'Select a Monday–Saturday date within the next 60 days.'});
+  if (await db.collection('dailyClosings').findOne({ _id: date }, { projection: { _id: 1 } }))
+    return res.status(409).json({ error: CLOSED_DAY_MESSAGE });
   const services=await getSelectedServices(db,serviceIds);
   if(!services)
     return res.status(404).json({error:'Selected haircut service is unavailable.'});
@@ -291,6 +307,7 @@ router.post('/',...customerOnly,async(req,res)=>{
         // Serialize concurrent bookings by this customer before enforcing limits.
         // The user-document write ensures simultaneous requests cannot both pass.
         await db.collection('users').updateOne({_id:req.user._id},{$currentDate:{lastBookingAttemptAt:true}},{session});
+        await ensureBookableDay(db,date,session);
         if(startMinutes<LUNCH_START)await reserveMorningCapacity(db,date,null,session);
         const sameDay=await db.collection('appointments').findOne({
           customerId:req.user._id,status:{$in:ACTIVE_BOOKINGS},
@@ -309,6 +326,10 @@ router.post('/',...customerOnly,async(req,res)=>{
       break;
     }catch(err){
       if(err.status===409)return res.status(409).json({error:err.message});
+      if(err.code===112 || err.hasErrorLabel?.('TransientTransactionError')){
+        const closed=await db.collection('dailyClosings').findOne({_id:date},{projection:{_id:1}});
+        return res.status(409).json({error:closed?CLOSED_DAY_MESSAGE:'The selected appointment availability changed. Please refresh and try again.'});
+      }
       if(err.code!==11000)throw err;
     }finally{await session.endSession();}
   }
@@ -356,6 +377,7 @@ router.patch('/:id/reschedule', ...customerOnly, async (req, res) => {
       if (!validStart(startMinute,duration)) {
         const e = new Error('The haircut must finish before lunch or closing. Please choose another time.'); e.status = 400; throw e;
       }
+      await ensureBookableDay(db,date,session);
       if(startMinute<LUNCH_START)await reserveMorningCapacity(db,date,id,session);
       const day = manilaDateRange(date);
       const conflict = await db.collection('appointments').findOne({
