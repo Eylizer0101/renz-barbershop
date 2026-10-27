@@ -4504,3 +4504,40 @@ body:has(#cashierProfileTrigger) .cashier-header-actions{position:relative;displ
 .admin-appt-modal-footer{display:flex;justify-content:flex-end;border-top:1px solid #eee6de;padding-top:16px}
 @media(max-width:1000px){.admin-appt-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.admin-appt-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-appt-stat{padding:14px}.admin-appt-stat strong{font-size:24px}.admin-appt-filters{padding:14px}.admin-appt-filters select,.admin-appt-filters input[type=date]{flex:1 1 135px;max-width:none;width:auto}.admin-appt-search{flex-basis:100%}.admin-appt-modal-grid{grid-template-columns:1fr}.admin-appt-table-heading{padding:17px}}
+
+
+/* Front Desk: decorative scissors behind Barber stations and Queue overview only. */
+.front-desk-view .desk-dashboard-panels > .desk-barbers-panel,
+.front-desk-view .desk-dashboard-panels > .desk-overview-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before,
+.front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
+  content: "";
+  position: absolute;
+  width: min(72%, 380px);
+  aspect-ratio: 1 / 1;
+  right: -12%;
+  top: 50%;
+  transform: translateY(-50%) rotate(-18deg);
+  background: url('../images/landingpage/Scissors.png') center / contain no-repeat;
+  opacity: .13;
+  pointer-events: none;
+  z-index: 0;
+}
+@media (max-width: 700px) {
+  .front-desk-view .desk-dashboard-panels > .desk-barbers-panel::before,
+  .front-desk-view .desk-dashboard-panels > .desk-overview-panel::before {
+    width: min(75%, 280px);
+    right: -14%;
+    opacity: .11;
+  }
+}
+
+.front-desk-view .desk-dashboard-panels > .desk-barbers-panel > *,
+.front-desk-view .desk-dashboard-panels > .desk-overview-panel > * {
+  position: relative;
+  z-index: 1;
+}
