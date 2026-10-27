@@ -298,6 +298,7 @@
       services: ["SERVICE OVERVIEW", "Service Management", "What customers can choose, with prices and durations.", "services"],
       inventory: ["INVENTORY OVERVIEW", "Inventory Management", "Monitor supplies, products, and stock levels.", "inventory"],
       staff: ["STAFF OVERVIEW", "Staff Management", "Cashier and admin accounts.", "staff"],
+      appointments: ["BOOKING OVERVIEW", "Appointment Monitoring", "View and monitor customer appointments without changing bookings.", "appointments"],
       activity: ["SECURITY OVERVIEW", "Activity Log", "Who did what: sign-ins, failed sign-ins, discounts, voids, no-shows and account changes.", "activity"]
     }[kind];
     if (!content) return;
@@ -308,7 +309,8 @@
       services: "Services.png",
       inventory: "Inventory.png",
       staff: "StaffIcon.png",
-      activity: "ActivityLog.png"
+      activity: "ActivityLog.png",
+      appointments: "ActivityLog.png"
     };
     const artwork = kind === "payments"
       ? '<img src="/images/CashierDashboard/PesoBadge.png" alt="" loading="eager" decoding="async">'
@@ -368,6 +370,7 @@
       }
       return () => { if (clockTimer !== null) window.clearInterval(clockTimer); if (typeof cleanup === "function") cleanup(); };
     } },
+    appointments: { title: "Appointments", eyebrow: "BOOKING OVERVIEW", description: "Read-only monitoring of customer bookings.", render: withAdminBanner("appointments", window.AdminAppointments.render) },
     payments: { title: "Payments & Reports", eyebrow: "FINANCE", description: "Sales for any date range, by payment method. Download as CSV for Excel.", render: withAdminBanner("payments", (body, actions) => Desk.payments(body, actions, user)) },
     customers: { title: "Customers", eyebrow: "CUSTOMER RECORDS", description: "Optional customer accounts and walk-in visits.", render: withAdminBanner("customers", (body, actions) => Desk.customers(body, actions, user)) },
     barbers: { title: "Barbers", eyebrow: "MEET THE TEAM", description: "Add, edit or remove barbers, set who is on duty, and moderate reviews.", render: withAdminBanner("barbers", window.AdminManageBarbers.render) },

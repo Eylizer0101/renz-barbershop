@@ -176,6 +176,15 @@ router.patch('/notifications/:id/read',requireAuth,async(req,res)=>{
   await req.app.locals.db.collection('appointmentNotifications').updateOne(filter,update);
   res.json({message:'Marked as read.'});
 });
+// Admin monitoring: read-only. Cashier operations remain on /staff.
+router.get('/admin',requireAuth,requireRole('admin'),async(req,res)=>{
+  const db=req.app.locals.db;
+  const items=await db.collection('appointments').find({}).sort({startsAt:-1}).limit(2000).toArray();
+  const customerIds=[...new Map(items.filter(a=>a.customerId).map(a=>[String(a.customerId),a.customerId])).values()];
+  const customers=customerIds.length?await db.collection('users').find({_id:{$in:customerIds}},{projection:{photoUrl:1}}).toArray():[];
+  const photos=new Map(customers.map(customer=>[String(customer._id),customer.photoUrl||'']));
+  res.json(items.map(a=>({...view(a),customerPhotoUrl:photos.get(String(a.customerId))||''})));
+});
 router.get('/staff',...staffOnly,async(req,res)=>{
   const db=req.app.locals.db;
   const items=await db.collection('appointments').find({startsAt:{$gte:new Date(Date.now()-86400000)}}).sort({startsAt:1}).limit(150).toArray();
