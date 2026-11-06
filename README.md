@@ -1,114 +1,297 @@
-# Barbershop Queue System
+<div align="center">
 
-Queue, front desk, payments and analytics for Renz Barbershop. Node.js (Express) + MongoDB.
+# RENZ Barbershop
 
-## Who uses what
+### Barbershop Queue, Appointment and Management System
 
-| Role | Page | What they do |
-|---|---|---|
-| Customer (walk-in) | `/dashboard.html` | Just a name, no account: join the queue, follow their turn (the page updates itself and alerts them), rate the barber who served them |
-| Customer (optional account) | `/dashboard.html` | Same, plus visit history, rating past visits, change password, delete account. Only for customers who want one |
-| Cashier | `/cashier.html` | Front desk: add walk-ins, call the next customer for each barber, complete visits and take payment (cash, GCash, card), sell products, daily payments, customer accounts |
-| Admin (owner) | `/admin.html` | Everything the cashier does, plus live analytics, payment reports (CSV) and voids, barbers, services and prices, inventory, staff accounts, review moderation and the activity log |
-| Anyone | `/display.html` | Queue screen for a TV in the shop: now serving and next in line (first name and initial only) |
+A web-based solution for organizing customer visits, managing barbershop operations, recording payments, and reviewing business performance.
 
-Everyone starts at `/login.html`. Walk-ins only type their name. Admins confirm with a 6-digit code sent to their email, and can tick "Remember this device for 30 days" so they aren't asked every time.
+![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Framework-Express.js-303030?style=flat-square&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)
+![JavaScript](https://img.shields.io/badge/Language-JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![Deployment](https://img.shields.io/badge/Deployment-Render-454EAA?style=flat-square&logo=render&logoColor=white)
 
-## Setup
+[Overview](#overview) · [Features](#key-features) · [Technology](#technology-stack) · [Setup](#getting-started) · [Security](#security-and-privacy)
 
-Requires Node.js 20+ and MongoDB (local or Atlas).
+</div>
 
-First open a terminal in `barber-main` and run `cd backend`. All npm commands below run inside `backend`. The Windows launcher stays in the main folder.
+---
 
-1. Copy `.env.example` to `.env` and fill it in (database, `JWT_SECRET`, admin and optional cashier login).
-2. `npm install`
-3. `npm run seed` creates the admin and cashier accounts, three sample barbers and the starting services. Running it again only adds what is missing.
-4. `npm start` (or double-click `start-server.cmd` on Windows), then open http://localhost:3000
+## Overview
 
-While `SMTP_USER`/`SMTP_PASS` are empty, admin login codes are printed in the server window instead of emailed.
+**RENZ Barbershop Management System** is a browser-based application built to simplify daily operations in a barbershop. It brings customer queue and booking activities, front-desk services, payment records, and administrative tools into one system.
 
-By default the site only opens on this computer. To let phones and tablets on the shop Wi-Fi use it, set `HOST=0.0.0.0` in `.env` (and use HTTPS before real customers use it; see Security).
+The project supports three primary user roles: **Customer**, **Cashier**, and **Administrator**. It also provides a queue display intended for use inside the shop. Its goal is to improve visibility of service status and reduce repetitive manual recordkeeping.
 
-Service prices from the seed are examples: set the real ones on the admin **Services** page. Replace the sample barbers on the **Barbers** page.
+## Key Features
 
-## How a visit works
+### Customer
 
-1. The customer joins online (guest or account), or the cashier adds them as a walk-in. They choose a service and, optionally, a barber.
-2. When a barber is free, the cashier presses **Call next** for that barber. The next customer who asked for that barber, or for any barber, is called.
-3. The customer's page shows "It's your turn" with a sound; the queue screen shows them under Now serving.
-4. When the haircut is done, the cashier presses **Complete & pay**, confirms the amount and payment method, and the payment is recorded.
-5. The customer can then rate the barber who served them (once per visit).
+- Join or monitor a service queue, including support for walk-in customers.
+- View queue status and estimated waiting information where available.
+- Browse available barbers and haircut services.
+- Access booking, appointment, and visit-related screens.
+- Review past visits and provide service feedback when supported by the active flow.
+- Manage account information if using a registered customer account.
 
-Customers can leave the queue themselves. The cashier can call a specific customer, mark a no-show, or cancel. Charging less than the price needs a reason. Only the admin can void a payment, with a reason; product sales go back into stock.
+### Cashier
 
-Accounts are optional. A walk-in can create one later; their visit from today is kept. The cashier can also create one from a walk-in visit, but only if the customer asks.
+- Add walk-in customers and organize the daily queue.
+- Call the next customer, monitor active services, and update visit status.
+- Handle customer check-ins and appointment-related desk operations.
+- Record completed services and payment transactions.
+- Review daily front-desk activity and customer information based on access permissions.
+- Record product sales when inventory and sales functions are configured.
 
-## Backups
+### Administrator
 
-- `npm run backup` saves the whole database to `backend/backups/` (kept out of GitHub; it contains customer details).
-- `npm run restore -- backups/<file>.json --yes` puts a backup back (stop the server first).
+- Review operational dashboards and business analytics.
+- Manage barber profiles, services, and prices.
+- Maintain product inventory and staff records.
+- Review payments and generate reports.
+- Monitor customer records, reviews, and activity logs.
+- Manage administrative access and other permitted operations.
 
-Make a backup at least daily once the shop uses the system, and keep a copy off this computer.
+### Queue and Operational Workflow
 
-## Tests
+1. A customer registers a service request or a cashier adds a walk-in customer.
+2. Staff organize waiting customers based on barber availability and applicable queue rules.
+3. The cashier calls the customer when service begins.
+4. After the service, the cashier records completion and payment.
+5. Authorized staff can review the transaction in operational records and reports.
 
-`npm test` starts the server on a separate throwaway database (`barbershop_test`), checks every role, flow and security rule (146 checks), then deletes that database. Your real data is never touched. MongoDB must be running.
+> **Implementation note:** The repository contains both older queue-system documentation and a newer frontend-structure document that explicitly identifies some named frontend modules as placeholders. Review the currently deployed screens and routes before assuming every booking or reporting feature listed above is fully active.
 
-## Project structure
+## Technology Stack
 
+| Layer | Technologies |
+| --- | --- |
+| Frontend | HTML, CSS, JavaScript |
+| Backend | Node.js 20+, Express.js 5 |
+| Database | MongoDB; official MongoDB Node.js driver |
+| Authentication and security | bcryptjs, JSON Web Tokens, cookie-parser, Helmet, express-rate-limit |
+| Email | Nodemailer; environment-dependent email configuration |
+| Reporting and analytics | Chart.js, ExcelJS |
+| Deployment | Render, MongoDB Atlas |
+| Development tools | Git, GitHub, Visual Studio Code |
+
+The stack above is based on the published backend `package.json` and repository deployment instructions.
+
+## Project Structure
+
+```text
+renz-barbershop/
+├── backend/                     # Express server, API and database logic
+│   ├── server.js                # Backend entry point
+│   ├── seed.js                  # Initial data setup
+│   ├── package.json             # Backend dependencies and npm scripts
+│   ├── routes/                  # Feature-specific routes
+│   ├── middleware/              # Access control and middleware
+│   ├── utils/                   # Common server utilities
+│   ├── scripts/                 # Backup and restore commands
+│   └── tests/                   # Automated tests
+├── frontend/                    # Browser interface and client-side files
+├── render.yaml                  # Render service configuration
+├── DEPLOY-GITHUB-RENDER.md      # Additional deployment instructions
+├── PAANO-I-RUN.txt              # Local running instructions
+├── README-STRUCTURE.md          # Frontend restructuring notes
+└── README.md                    # Project documentation
 ```
-barber-main/
-  README.md
-  start-server.cmd     double-click launcher for Windows
-  backend/             server, API, database and dependencies
-    .env.example       copy to .env and fill in your settings
-    package.json
-    package-lock.json
-    server.js            starts the backend: security headers, routes, database indexes
-    seed.js              creates the admin/cashier accounts, sample barbers and services
-    routes/              API endpoints, one file per feature
-      auth.js              login, admin email code, customer sign-up, logout, change password
-      queue.js             join, my ticket, leave, history, queue screen, walk-ins, call, complete, no-show
-      barbers.js           profiles, on/off duty, ratings, review moderation
-      services.js          services with prices and durations
-      payments.js          payment reports and product sales
-      customers.js         customer accounts and walk-in history (cashier and admin)
-      staff.js             cashier and admin accounts (admin only)
-      inventory.js         products in stock
-      analytics.js         live dashboard numbers and monthly product sales
-      audit.js             activity log (admin only)
-    middleware/auth.js   checks the session and role on protected endpoints
-    utils/               validation, sessions, security helpers, dates (shop time zone), clean-up and email
-    scripts/             backup and restore
-    tests/smoke.js       end-to-end test (npm test)
-  frontend/            pages served to the browser
-    login.html, verify.html, dashboard.html, cashier.html, admin.html, display.html
-    css/app.css          shared design for all dashboards
-    css/login.css        login and code pages
-    js/common.js         shared helpers (server calls, formatting, dialogs, page switching)
-    js/desk.js           front desk, payments, customers and account screens (cashier and admin)
-    js/admin.js, cashier.js, dashboard.js, login.js, verify.js, display.js
+
+> The frontend layout has been restructured over time. See `README-STRUCTURE.md` and the current `frontend/` directory for the exact file names in your checked-out revision.
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js 20 or newer** and npm
+- A running MongoDB server or MongoDB Atlas database
+- Git (optional if downloading a ZIP)
+- A code editor such as Visual Studio Code
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Eylizer0101/renz-barbershop.git
+cd renz-barbershop
 ```
 
-## Security
+### 2. Install Backend Dependencies
 
-What the system does:
+```bash
+cd backend
+npm install
+```
 
-- **Sign-in:** passwords stored with bcrypt. 5 wrong passwords or codes in a row lock the account for 15 minutes (a remembered admin device can still sign in). A wrong email gets the same answer, at the same speed, as a wrong password.
-- **Admin code:** 6 digits, 10 minutes, 5 tries, at most 3 new codes per sign-in. "Remember this device" lasts 30 days and is cancelled by a password change or "Sign out all other devices".
-- **Sessions:** 8-hour cookies that page scripts can't read, sent only to this site. Changing or resetting a password, deactivating an account or changing a role signs that person out everywhere immediately.
-- **One-time passwords:** staff given one by the admin must change it before they can do anything else.
-- **Permissions:** every request is checked on the server (customer, cashier, admin). Customers can only see and rate their own visits; ratings are only for the barber who served them.
-- **Money:** discounts need a reason, voids are admin-only with a reason, and both are in the activity log and CSV.
-- **Abuse limits:** sign-in, sign-up, code and queue-join limits per device, a cap on the online waiting line (`MAX_ONLINE_WAITING`, default 60), and an overall request limit.
-- **Browser protections:** security headers (Content-Security-Policy, no framing), changes sent from other websites are blocked, the public queue screen shows only first names and initials, and CSV exports can't run spreadsheet formulas.
-- **Activity log:** sign-ins, failed sign-ins, discounts, voids, no-shows, cancellations, and staff, customer, barber, service and inventory changes, with who and when.
-- **Privacy:** customers can delete their account; their name is removed from past visits.
+The existing setup documentation runs the application through the backend; no separate frontend development command is required by that documented workflow.
 
-Still needed before real customers use it:
+### 3. Configure Environment Variables
 
-1. **HTTPS** (a hosting service or a reverse proxy), with `NODE_ENV=production` and `TRUST_PROXY=1` behind the proxy.
-2. **Email** for admin codes (`SMTP_USER`/`SMTP_PASS`).
-3. **MongoDB login:** the local MongoDB has no password. Turn on authorization and put the user and password in `MONGODB_URI`, or use MongoDB Atlas with a strong password.
-4. **Daily backups** (`npm run backup`), kept off this computer.
-5. Change the old MongoDB Atlas password that was shared on Google Drive.
+If your checked-out `backend/` directory includes `.env.example`, copy it to `.env` and update the values. Otherwise, create a private `backend/.env` file based on the configuration expected by your current backend.
+
+Example configuration (replace all example values):
+
+```dotenv
+NODE_ENV=development
+PORT=3000
+MONGODB_URI=mongodb://127.0.0.1:27017
+DB_NAME=barbershop
+JWT_SECRET=replace-with-a-long-random-secret-at-least-32-characters
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=replace-with-a-strong-password
+CASHIER_EMAIL=cashier@example.com
+CASHIER_PASSWORD=replace-with-a-strong-password
+TZ=Asia/Manila
+```
+
+The example above illustrates the variables referenced by published setup notes; **it is not a verified, exhaustive copy of the current `.env.example`**. Confirm any additional email, session, host, or provider variables in the current backend code and deployment settings.
+
+To create a random secret locally:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+**Never commit `.env` files, database passwords, email credentials, or other secrets to GitHub.**
+
+### 4. Seed Initial Records (Only for a New Database)
+
+```bash
+npm run seed
+```
+
+The repository describes the seed script as a way to create initial accounts and sample records. **Do not run this against an existing production database without checking the script and backing up the database first.**
+
+### 5. Start the Application
+
+```bash
+npm start
+```
+
+Or start the Node.js server in watch mode during development:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The published setup guide uses port `3000`. Check the terminal output if you configured a different port.
+
+## Available npm Scripts
+
+Run these commands from the **`backend/`** directory.
+
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Start the backend server |
+| `npm run dev` | Start the server with Node.js watch mode |
+| `npm run seed` | Run the database seeding script |
+| `npm test` | Execute the repository's smoke tests |
+| `npm run backup` | Create a database backup |
+| `npm run restore` | Run the backup restoration script |
+
+Avoid running tests, seeding, or restore commands against important real customer data. Test behavior should be inspected before use.
+
+## Deployment to Render
+
+The repository includes a `render.yaml` blueprint and a deployment guide. Its recorded configuration uses the following commands from the repository root:
+
+```bash
+# Build
+npm ci --prefix backend
+
+# Start
+npm start --prefix backend
+```
+
+Configure environment values in Render rather than uploading a production `.env` file. Relevant settings documented in the repository include:
+
+| Variable | Description |
+| --- | --- |
+| `NODE_ENV` | Set to `production` |
+| `MONGODB_URI` | Secure database connection string |
+| `DB_NAME` | Name of the MongoDB database |
+| `JWT_SECRET` | Strong, confidential signing key |
+| `TZ` | `Asia/Manila` for the shop's configured time zone |
+| `TRUST_PROXY` | Set according to the deployed reverse proxy configuration |
+
+Configure any email-provider credentials required by the active authentication flow. Render assigns the service port for its environment, so do not override `PORT` without a specific reason.
+
+For the longer instructions, refer to [`DEPLOY-GITHUB-RENDER.md`](DEPLOY-GITHUB-RENDER.md).
+
+**File-upload limitation:** The published deployment guide says barber photos are stored on the server's local filesystem. On an ephemeral deployment, newly uploaded files may be lost across restarts or deployments. Use durable object storage or a supported persistent disk before depending on uploads in production.
+
+## Security and Privacy
+
+The repository includes security-related dependencies and documents practices such as:
+
+- Password hashing using `bcryptjs`.
+- Protected requests and role-based authorization checks.
+- Authentication token or session handling.
+- HTTP response protections with Helmet.
+- Rate limiting on applicable endpoints.
+- Activity records for sensitive operational changes.
+- Limits on access to customer and payment information.
+
+These items describe the published design and included security tooling; they are **not a substitute for an independent security audit**. Before handling real customers' information:
+
+1. Deploy behind HTTPS and configure proxy/session settings correctly.
+2. Use strong passwords and unique production secrets.
+3. Restrict MongoDB access and limit database account permissions.
+4. Verify each role's access to protected pages and API endpoints.
+5. Protect backups and keep them outside the public repository.
+6. Confirm production email verification or sign-in codes work as intended.
+7. Keep dependencies updated and test critical workflows before release.
+
+## Testing
+
+From the backend directory:
+
+```bash
+npm test
+```
+
+This runs the script defined in `backend/package.json` (`tests/smoke.js`). Check its test database configuration before running it, especially if your environment points to a live MongoDB Atlas database.
+
+For manual checks, review login, queue status, walk-in processing, appointments, payments, inventory, staff permissions, and mobile layouts as appropriate to the features currently implemented.
+
+## Troubleshooting
+
+| Issue | What to check |
+| --- | --- |
+| Server does not start | Node.js version, `backend/` working directory, installed dependencies, and terminal logs |
+| Database connection fails | `MONGODB_URI`, database credentials, network access, and MongoDB service status |
+| Login or verification fails | Initial accounts, credentials, session settings, and email configuration |
+| Missing records | Database name, selected MongoDB deployment, and whether initial data was added |
+| Images disappear after deployment | Whether uploads are stored on an ephemeral filesystem |
+| Unexpected permission errors | Account role and server-side authorization rules |
+
+## Project Documentation
+
+- [`DEPLOY-GITHUB-RENDER.md`](DEPLOY-GITHUB-RENDER.md) — GitHub and Render deployment notes
+- [`PAANO-I-RUN.txt`](PAANO-I-RUN.txt) — Local run instructions
+- [`README-STRUCTURE.md`](README-STRUCTURE.md) — Frontend file restructuring notes and known placeholders
+
+## Developer
+
+**Eylizer De Afria**  
+Bachelor of Science in Information Technology, major in System Development  
+PHINMA Araullo University
+
+- **Portfolio:** https://eylizer-portfolio.onrender.com
+- **GitHub:** https://github.com/Eylizer0101
+- **LinkedIn:** https://www.linkedin.com/in/eylizer-de-afria-040724430
+
+## License and Usage
+
+**Copyright © 2026 Eylizer De Afria. All rights reserved.**
+
+This project is shared for educational, demonstration, and portfolio-review purposes. Public visibility does not, by itself, grant permission to copy, modify, redistribute, sublicense, or commercially exploit the source code. Obtain permission from the relevant copyright holder(s) before doing so, except where applicable law or separate third-party licenses permit otherwise.
+
+This notice applies only to rights owned by the named copyright holder; third-party packages and any other contributors' work remain subject to their respective rights and licenses. A repository-wide `LICENSE` file should be added if a specific license is intended in the future.
